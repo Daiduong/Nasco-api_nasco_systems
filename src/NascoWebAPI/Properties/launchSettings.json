@@ -1,0 +1,22 @@
+{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:8888/",
+      "sslPort": 0
+    }
+  },
+  "profiles": {
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "api/values"
+    },
+    "NascoWebAPI": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "Http://localhost:5000/api/values"
+    }
+  }
+}
