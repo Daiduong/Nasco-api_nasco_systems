@@ -20,7 +20,10 @@ namespace NascoWebAPI.Data
         public Nullable<int> DepartmentId { get; set; }
         public string ListLadingId { get; set; }
         public Nullable<int> TotalLading { get; set; }
+        public Nullable<int> TotalLadingDeliveried { get; set; }
         public Nullable<int> Status { get; set; }
         public Nullable<int> State { get; set; }
+        public int? ModifiedBy { get; set; }
+        public Nullable<System.DateTime> ModifiedDate { get; set; }
     }
 }

@@ -167,6 +167,16 @@ namespace NascoWebAPI.Data
                 _context.Entry<T>(entity).State = EntityState.Deleted;
             }
         }
+        public virtual void Unchanged(T entity)
+        {
+            EntityEntry dbEntityEntry = _context.Entry<T>(entity);
+            dbEntityEntry.State = EntityState.Unchanged;
+        }
+        public virtual void Detached(T entity)
+        {
+            EntityEntry dbEntityEntry = _context.Entry<T>(entity);
+            dbEntityEntry.State = EntityState.Detached;
+        }
         public IEnumerable<T> SQLQuery(string sql, params object[] parameters)
         {
             return _context.Set<T>().FromSql(sql, parameters);

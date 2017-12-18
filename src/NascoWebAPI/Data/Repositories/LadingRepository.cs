@@ -57,6 +57,8 @@ namespace NascoWebAPI.Data
             try
             {
                 entity.ModifiedDate = DateTime.Now;
+                entity.CreateDate = DateTime.Now;
+                if ((entity.Weight ?? 0) <= 0) entity.Weight = 0.1;
                 this.Insert(entity);
                 this.SaveChanges();
 
@@ -106,10 +108,27 @@ namespace NascoWebAPI.Data
                 if (entity.Status.Value == (int)StatusLading.ThanhCong && entity.PaymentType == (int)PaymentType.Recipient)
                 {
                     entity.PaymentAmount = true;
+                    entity.AmountKeepBy = entity.OfficerId;
                 }
                 if (entity.Status.Value == (int)StatusLading.DaChuyenHoan)
                 {
                     entity.Return = true;
+                }
+                if (entity.BKDeliveryId.HasValue)
+                {
+                    var bkDelivery = _context.BKDeliveries.SingleOrDefault(o => o.ID_BK_Delivery == entity.BKDeliveryId.Value);
+                    if (bkDelivery == null)
+                    {
+                        var statusDelivery = new int[] { (int)StatusLading.DaChuyenHoan, (int)StatusLading.ThanhCong };
+                        if (statusDelivery.Contains(entity.Status.Value))
+                        {
+                            bkDelivery.TotalLadingDeliveried = (bkDelivery.TotalLadingDeliveried ?? 0) + 1;
+                            if (bkDelivery.TotalLadingDeliveried == bkDelivery.TotalLading)
+                            {
+                                bkDelivery.Status = 702;
+                            }
+                        }
+                    }
                 }
                 this.Update(entity);
                 LadingHistory ldHistory = new LadingHistory();

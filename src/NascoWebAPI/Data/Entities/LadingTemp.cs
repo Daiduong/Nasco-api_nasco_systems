@@ -127,5 +127,7 @@ namespace NascoWebAPI.Data
         public virtual Location DistrictToObj { get; set; }
         [ForeignKey("TransportID"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Transport Transport { get; set; }
+        [ForeignKey("PriceListId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public virtual PriceList PriceList { get; set; }
     }
 }

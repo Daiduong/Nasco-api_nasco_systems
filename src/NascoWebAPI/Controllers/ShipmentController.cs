@@ -254,7 +254,7 @@ namespace NascoWebAPI.Controllers
                     if (lading.Status == statusLadingSuccess)
                     {
                         lading.Status = statusLadingScanned;
-                        lading.OfficerDelivery = user.OfficerID;
+                        lading.OfficerTransferId = user.OfficerID;
                         lading.ModifiedBy = user.OfficerID;
                         _ladingRepository.UpdateAndInsertLadingHistory(lading);
                         succeeded++;
@@ -321,8 +321,18 @@ namespace NascoWebAPI.Controllers
                     var bkDelivery = await _bkDeliveryRepository.GetSingleAsync(i => i.Code_BK_Delivery.Equals(deliveryCode));
                     if (bkDelivery == null || bkDelivery.ListLadingId.Replace("//", ";").Split(';').ToArray().Length == 0)
                     {
-                        return JsonError("BKDelivery Not Found");
-
+                        return JsonError("Không tìm thấy bảng kê phát");
+                    }
+                    if (bkDelivery.Status != 0 || bkDelivery.Status != 700)
+                    {
+                        //return JsonError("Bảng kê phát này đã được xác nhận");
+                    }
+                    else
+                    {
+                        bkDelivery.Status = 701;//Xác nhận - đang phát
+                        bkDelivery.ModifiedDate = DateTime.Now;
+                        bkDelivery.ModifiedBy = user.OfficerID;
+                        _bkDeliveryRepository.SaveChanges();
                     }
                     var listLadingID = bkDelivery.ListLadingId.Replace("//", ";").Split(';');
                     var result = await _ladingRepository.GetAsync(l => listLadingID.Contains(l.Id.ToString()), includeProperties: includeProperties);
@@ -513,11 +523,15 @@ namespace NascoWebAPI.Controllers
         {
             if (ladingModel == null)
             {
-                return JsonError("Lading not empty");
+                return JsonError("Dữ liệu đẩy vào không hợp lệ");
             }
             if (!string.IsNullOrEmpty(ladingModel.Code) && _ladingRepository.EqualsCode(ladingModel.Code))
             {
-                return JsonError("Lading Code existed!");
+                return JsonError("Mã vận đơn đã tồn tại!");
+            }
+            if ((ladingModel.PriceListId ?? 0) == 0)
+            {
+                return JsonError("Không tìm thấy thông tin bảng giá");
             }
             var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
             var user = await _officeRepository.GetSingleAsync(o => o.UserName == jwtDecode.Subject);
@@ -636,12 +650,19 @@ namespace NascoWebAPI.Controllers
                 //lading.POTo = ladingModel.POTo;
                 //lading.CenterTo = ladingModel.CenterTo;
                 #region [Set PostOffice] 
-                int? poFrom = ladingModel.POFrom;
+                int? poFrom = user.PostOfficeId;
                 int? poTo = ladingModel.POTo;
                 if ((poFrom ?? 0) <= 0)
                 {
                     var po = await _postOfficeRepository.GetDistanceMinByLocation(lading.CitySendId ?? 0, ladingModel.LatFrom ?? 0, ladingModel.LngFrom ?? 0, 1);
                     poFrom = po.PostOfficeID;
+                }
+                if ((ladingModel.LatTo ?? 0) == 0 || (ladingModel.LngTo ?? 0) == 0 || (ladingModel.AddressTo.Trim().ToUpper().Equals(lading.AddressTo.Trim().ToUpper())))
+                {
+                    ladingModel.LatTo = lading.LatTo;
+                    ladingModel.LngTo = lading.LngTo;
+                    ladingModel.POTo = lading.POTo;
+                    poTo = lading.POTo;
                 }
                 if ((poTo ?? 0) <= 0)
                 {
@@ -696,6 +717,10 @@ namespace NascoWebAPI.Controllers
                 {
                     lading.PaymentAmount = true;
                 }
+                else
+                {
+                    lading.PaymentAmount = false;
+                }
                 #endregion
                 if (ladingModel.COD > 0)
                 {
@@ -708,7 +733,14 @@ namespace NascoWebAPI.Controllers
                 #region Dịch vụ giá trị gia tăng
                 lading.COD = ladingModel.COD;
                 lading.CODPrice = ladingModel.CODPrice;
-                lading.PPXDPercent = ladingModel.PPXDPercent;
+                if (ladingModel.PPXDPercent > 0)
+                {
+                    lading.PPXDPercent = ladingModel.PPXDPercent;
+                }
+                else if (ladingModel.PPXDPrice > 0)
+                {
+                    lading.PPXDPercent = ladingModel.PPXDPrice;
+                }
                 lading.Insured = ladingModel.Insured;
                 lading.InsuredPrice = ladingModel.InsuredPrice;
                 lading.TotalPriceDVGT = ladingModel.TotalPriceDVGT;
@@ -730,10 +762,21 @@ namespace NascoWebAPI.Controllers
                 #endregion
                 lading.OfficerId = user.OfficerID;
                 lading.ModifiedBy = user.OfficerID;
-                lading.PriceListId = ladingModel.PriceListId;
+                if ((ladingModel.PriceListId ?? 0) > 0)
+                {
+                    lading.PriceListId = ladingModel.PriceListId;
+                }
+                else
+                {
+                    lading.PriceListId = _priceListRepository.GetFirst(o => (o.IsApply ?? false)).PriceListID;
+                }
                 if (lading.PaymentType.HasValue && lading.PaymentType == (int)PaymentType.Done)
                 {
                     lading.PaymentAmount = true;
+                }
+                else
+                {
+                    lading.PaymentAmount = false;
                 }
                 #region Giá + Lưu
                 if (_ladingRepository.EqualsCode(ladingModel.Code) == false)
@@ -751,7 +794,7 @@ namespace NascoWebAPI.Controllers
                 else return JsonError("Mã vận đơn đã tồn tại");
                 if (lading.OfficerId != null && lading.OfficerId > 0)
                 {
-                    var postOffice = await _postOfficeRepository.GetSingleAsync( o=> o.PostOfficeID == user.PostOfficeId.Value );
+                    var postOffice = await _postOfficeRepository.GetSingleAsync(o => o.PostOfficeID == user.PostOfficeId.Value);
                     if (postOffice != null && postOffice.PostOfficeID > 0)
                     {
                         lading.IsPriceMain = ladingModel.IsPriceMain;
@@ -790,13 +833,22 @@ namespace NascoWebAPI.Controllers
         {
             if (ladingModel == null)
             {
-                return JsonError("dữ liệu đẩy vào không được trống");
+                return JsonError("Dữ liệu đẩy vào không được trống");
             }
             if (!_ladingTempRepository.Any(o => o.Id == ladingModel.Id))
             {
                 return JsonError("Không tìm thấy thông tin yêu cầu");
             }
-            if (!string.IsNullOrEmpty(ladingModel.Code) && _ladingRepository.EqualsCode(ladingModel.Code))
+            if (string.IsNullOrEmpty(ladingModel.Code))
+            {
+                return JsonError("Mã vận đơn không được bỏ trống");
+            }
+            if ((ladingModel.PriceListId ?? 0) == 0)
+            {
+                return JsonError("Không tìm thấy thông tin bảng giá");
+            }
+            ladingModel.Code = ladingModel.Code.Trim().ToUpper();
+            if (_ladingRepository.EqualsCode(ladingModel.Code))
             {
                 return JsonError("Mã vận đơn đã tồn tại!");
             }
@@ -804,281 +856,277 @@ namespace NascoWebAPI.Controllers
             var user = await _officeRepository.GetSingleAsync(o => o.UserName == jwtDecode.Subject);
             if (user != null)
             {
-                LadingTemp lading = new LadingTemp();
-                lading = await _ladingTempRepository.GetFirstAsync(o => o.Id == ladingModel.Id);
-                var pOId = await _officeRepository.GetPOIdByOffice(user.OfficerID) ?? 0;
-                #region Ng??i g?i
-                if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
-                {
-                    var customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
-                    if (customerExists == null)
-                    {
-                        Customer cus = new Customer();
-                        cus.Address = ladingModel.SenderAddress;
-                        cus.CompanyName = ladingModel.SenderCompany;
-                        cus.Phone = ladingModel.SenderPhone;
-                        cus.CustomerName = ladingModel.SenderName;
-                        cus.State = 0;
-                        cus.AddressNote = ladingModel.AddressNoteFrom;
-                        cus.Create_Date = DateTime.Now;
-                        cus.Create_By = user.OfficerID;
-                        cus.Type = 0;//Khách vãng lai
-                        cus.PostOffice_Id = pOId;
-                        //Insert Customer
-                        _customerRepository.Insert(cus);
-                        _customerRepository.SaveChanges();
-                        cus.CustomerCode = _customerRepository.GetCode(cus.CustomerID);
-                        cus.PriceListID = await _priceListRepository.GetPriceApplyByPOID(pOId);
-                        //UpdateCustomer
-                        _customerRepository.SaveChanges();
-                        lading.SenderId = cus.CustomerID;
-                        ladingModel.SenderId = cus.CustomerID;
-                    }
-                    else
-                    {
-                        lading.SenderId = customerExists.CustomerID;
-                        ladingModel.SenderId = customerExists.CustomerID;
-
-                    }
-                }
-                else
-                {
-                    lading.SenderId = ladingModel.SenderId;
-                }
-                //TODO: Thêm khách l? + ??a ch?
-                #endregion
-
-                #region Ng??i nh?n
-
-                var recipient = new Recipient();
-                //if (ladingModel.RecipientId != null && ladingModel.RecipientId > 0)
-                //{
-                //    var dataR = unitOfWork.RecipientRepository.GetById(ladingModel.RecipientId.Value);
-                //    recipient = dataR ?? new Recipient();
-                //}
-                if (ladingModel.RecipientPhone != string.Empty)
-                {
-                    var dataR = await _recipientRepository.GetFirstAsync(o => o.Phone == ladingModel.RecipientPhone);
-                    recipient = dataR ?? new Recipient();
-
-                    recipient.State = (int)StatusSystem.Enable;
-                    recipient.Address = ladingModel.RecipientAddress;
-                    recipient.Name = ladingModel.RecipientName;
-                    recipient.Phone = ladingModel.RecipientPhone;
-                    recipient.CompanyName = ladingModel.RecipientCompany;
-                    recipient.AddressNote = ladingModel.AddressNoteTo;
-                    //Insert recipient
-                    if (dataR != null)
-                    {
-                        _recipientRepository.Update(recipient);
-
-                    }
-                    else
-                    {
-                        _recipientRepository.Insert(recipient);
-                    }
-                    _recipientRepository.SaveChanges();
-                    lading.RecipientId = recipient.Id;
-                }
-                #endregion
-
-                #region Thông tin
-
-                lading.PartnerCode = ladingModel.PartnerCode;
-                lading.State = (int)StatusSystem.Enable;
-                if (ladingModel.Id <= 0)
-                {
-                    lading.CreateDate = DateTime.Now;
-                    ladingModel.OficerId = user.OfficerID;
-                    lading.OfficerId = user.OfficerID;
-                    lading.OfficerPickup = user.OfficerID;
-                    lading.POCurrent = pOId;
-                }
-                //lading.Status = ladingModel.Status;
-                if (lading.Status == (int)StatusLading.DangLayHang || ladingModel.Status == (int)StatusLading.DaLayHang)
-                {
-                    lading.Status = (int)StatusLading.DaLayHang;
-                }
-                lading.TransportID = ladingModel.TransportID;
-                lading.StructureID = ladingModel.StructureID;
-                lading.RDFrom = ladingModel.RDFrom;
-                lading.RDTo = ladingModel.RDTo;
-                lading.IsGlobal = ladingModel.IsGlobal;
-                lading.CitySendId = ladingModel.CitySendId;
-                lading.DistrictFrom = ladingModel.DistrictFrom;
-                lading.CityRecipientId = ladingModel.CityRecipientId;
-                lading.DistrictTo = ladingModel.DistrictTo;
-                lading.AddressNoteTo = ladingModel.AddressNoteTo;
-                lading.AddressNoteFrom = ladingModel.AddressNoteFrom;
-                #region [Set PostOffice] 
-                int? poFrom = lading.POFrom;
-                int? poTo = ladingModel.POTo;
-
-                if ((poFrom ?? 0) <= 0)
-                {
-                    var po = await  _postOfficeRepository.GetDistanceMinByLocation(lading.CitySendId ?? 0, ladingModel.LatFrom ?? 0, ladingModel.LngFrom ?? 0, 1);
-                    poFrom = po.PostOfficeID;
-                }
-                if ((poTo ?? 0) <= 0)
-                {
-                    var po = await _postOfficeRepository.GetDistanceMinByLocation(lading.CityRecipientId ?? 0, ladingModel.LatTo ?? 0, ladingModel.LngTo ?? 0, 2);
-                    poTo = po.PostOfficeID;
-                }
-                lading.POCurrent = pOId;
-                lading.POFrom = poFrom;
-                if (!lading.POCreated.HasValue)
-                {
-                    lading.POCreated = pOId;
-                }
-                lading.POTo = poTo;
-                if (_postOfficeRepository.Any(o => o.PostOfficeID == lading.POFrom))
-                {
-                    lading.CenterFrom = (await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == lading.POFrom)).POCenterID ?? lading.POFrom;
-                }
-                if (_postOfficeRepository.Any(o => o.PostOfficeID == lading.POTo))
-                {
-                    lading.CenterTo = (await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == lading.POTo)).POCenterID ?? lading.POTo;
-                }
-                #endregion
-                lading.AddressFrom = ladingModel.AddressFrom;
-                lading.AddressTo = ladingModel.AddressTo;
-                lading.NameFrom = ladingModel.NameFrom;
-                lading.NameTo = ladingModel.NameTo;
-                lading.PhoneFrom = ladingModel.PhoneFrom;
-                lading.PhoneTo = ladingModel.PhoneTo;
-                lading.CompanyFrom = ladingModel.CompanyFrom;
-                lading.CompanyTo = ladingModel.CompanyTo;
-                //
-                lading.LatFrom = ladingModel.LatFrom;
-                lading.LngFrom = ladingModel.LngFrom;
-                lading.LatTo = ladingModel.LatTo;
-                lading.LngTo = ladingModel.LngTo;
-                lading.RouteLength = ladingModel.RouteLength;
-                lading.Weight = ladingModel.Weight;
-                lading.Id = ladingModel.Id;
-                lading.Width = ladingModel.Width;
-                lading.Height = ladingModel.Height;
-                lading.Length = ladingModel.Length;
-                lading.Number = ladingModel.Number ?? 1;
-                if (lading.Number == 0) lading.Number = 1;
-                lading.Mass = ladingModel.Mass;
-                lading.Noted = ladingModel.Noted;
-                lading.Description = ladingModel.Description;
-                lading.OnSiteDeliveryPrice = ladingModel.OnSiteDeliveryPrice;
-                #endregion
-
-                #region D?ch v? + Thanh toán
-
-                lading.ServiceId = ladingModel.ServiceId;
-                lading.PaymentType = ladingModel.PaymentId;
-
-                #endregion
-                if (ladingModel.COD > 0)
-                {
-                    lading.StatusCOD = (int)StatusCOD.ChuaThu;
-                }
-                else
-                {
-                    lading.StatusCOD = (int)StatusCOD.KhongCOD;
-                }
-                #region Dịch vụ giá trị gia tăng
-                lading.COD = ladingModel.COD;
-                lading.CODPrice = ladingModel.CODPrice;
-                lading.PPXDPercent = ladingModel.PPXDPercent;
-                lading.Insured = ladingModel.Insured;
-                lading.InsuredPrice = ladingModel.InsuredPrice;
-                lading.TotalPriceDVGT = ladingModel.TotalPriceDVGT;
-                lading.PriceVAT = ladingModel.PriceVAT;
-                lading.NoteTypePack = ladingModel.NoteTypePack;
-                lading.PackPrice = ladingModel.PackPrice;
-                lading.PackId = ladingModel.PackId;//Loại đóng gói
-                lading.PriceOther = ladingModel.PriceOther;
-                lading.InsuredPercent = ladingModel.InsuredPercent;
-                lading.KDPrice = ladingModel.KDPrice;
-                lading.KDNumber = ladingModel.KDNumber;
-                #endregion
-                #region Thông tin kiên
-                if (ladingModel.Number_L_W_H_DIM_List != null && ladingModel.Number_L_W_H_DIM_List.Count > 0)
-                {
-                    lading.Number_L_W_H_DIM = string.Join(",", ladingModel.Number_L_W_H_DIM_List.Where(o => o.Number > 0 && o.DIM > 0).Select(o => o.Number + "_" + o.Long + "_" + o.Width + "_" + o.Height + "_" + o.DIM));
-                }
-                #endregion
-                lading.ModifiedBy = user.OfficerID;
-                lading.PriceListId = ladingModel.PriceListId;
-
-                #region Giá + L?u
-                var postOffice = await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == lading.POFrom.Value);
+                Lading lading = new Lading();
+                var ladingTemp = await _ladingTempRepository.GetFirstAsync(o => o.Id == ladingModel.Id);
+                var postOffice = await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == user.PostOfficeId);
                 if (postOffice != null && postOffice.PostOfficeID > 0)
                 {
-                    lading.IsPriceMain = ladingModel.IsPriceMain;
-                    lading.PriceMain = ladingModel.PriceMain;
-                    lading.Amount = ladingModel.Amount;
-                    lading.AnotherServiceIds = ladingModel.AnotherServiceId;
-                    _ladingTempRepository.Update(lading);//UpdateLading và insert hành trình
-                    _ladingTempRepository.SaveChanges();
-                    #region Thêm vận đơn Lading
-                    if (lading.Status == (int)StatusLading.DaLayHang && (!lading.LadingId.HasValue || !_ladingRepository.Any(o => o.Id == lading.LadingId.Value)))
+                    if (!ladingTemp.LadingId.HasValue || !_ladingRepository.Any(o => o.Id == ladingTemp.LadingId.Value))
                     {
-                        //Thêm m?i vào Lading
-                        var ladingReal = new Lading();
-                        var jsonLadingTemp = Newtonsoft.Json.JsonConvert.SerializeObject(lading,
-                Formatting.Indented,
-                        new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });
-
-                        if (ladingReal.CopyFromJOject<Lading>(JObject.Parse(jsonLadingTemp)))
+                        lading.Status = (int)StatusLading.DaLayHang;
+                        var pOId = await _officeRepository.GetPOIdByOffice(user.OfficerID) ?? 0;
+                        #region Ng??i g?i
+                        if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
                         {
-                            ladingReal.Id = 0;
-                            ladingReal.OfficerId = user.OfficerID;
-                            ladingReal.OfficerPickup = user.OfficerID;
-                            
-                            if (ladingReal.PaymentType.HasValue && ladingReal.PaymentType == (int)PaymentType.Done)
+                            var customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
+                            if (customerExists == null)
                             {
-                                ladingReal.PaymentAmount = true;
-                            }
-                            _ladingRepository.InsertAndInsertLadingHistory(ladingReal);
-                            _ladingRepository.SaveChanges();
-                            if (string.IsNullOrEmpty(ladingModel.Code))
-                            {
-                                ladingReal.Code = _ladingRepository.CodeGenerationByLocationCode(postOffice.LocationId ?? 0, (int)ladingReal.Id);
+                                Customer cus = new Customer();
+                                cus.Address = ladingModel.SenderAddress;
+                                cus.CompanyName = ladingModel.SenderCompany;
+                                cus.Phone = ladingModel.SenderPhone;
+                                cus.CustomerName = ladingModel.SenderName;
+                                cus.State = 0;
+                                cus.AddressNote = ladingModel.AddressNoteFrom;
+                                cus.Create_Date = DateTime.Now;
+                                cus.Create_By = user.OfficerID;
+                                cus.Type = 0;//Khách vãng lai
+                                cus.PostOffice_Id = pOId;
+                                //Insert Customer
+                                _customerRepository.Insert(cus);
+                                _customerRepository.SaveChanges();
+                                cus.CustomerCode = _customerRepository.GetCode(cus.CustomerID);
+                                cus.PriceListID = await _priceListRepository.GetPriceApplyByPOID(pOId);
+                                //UpdateCustomer
+                                _customerRepository.SaveChanges();
+                                lading.SenderId = cus.CustomerID;
+                                ladingModel.SenderId = cus.CustomerID;
                             }
                             else
                             {
-                                ladingReal.Code = ladingModel.Code;
-                                //Cập nhập cấp vận đơn
-                                var provideLading = await _provideLadingRepository.GetFirstAsync(o => o.LadingCode.ToUpper().Equals(ladingModel.Code.ToUpper()));
-                                if (provideLading != null && provideLading.Status == 201)
-                                {
-                                    provideLading.Status = 202;
-                                    _provideLadingRepository.Update(provideLading);
-                                }
-                            }
-                            lading.LadingId = (int)ladingReal.Id;
-                            if (ladingModel.AnotherServiceId != null)
-                            {
-                                foreach (var serviceId in ladingModel.AnotherServiceIds)
-                                {
-                                    var serviceMap = new LadingMapService { LadingId = lading.Id, ServiceId = serviceId };
-                                    //Insert serviceMap
-                                    _ladingMapPriceRepository.Insert(serviceMap);
-                                }
-                                _ladingMapPriceRepository.SaveChanges();
-                            }
-                            _ladingTempRepository.SaveChanges();
-                            return Json(ladingReal);
-                        }
-                    }
-                    #endregion
+                                lading.SenderId = customerExists.CustomerID;
+                                ladingModel.SenderId = customerExists.CustomerID;
 
+                            }
+                        }
+                        else
+                        {
+                            lading.SenderId = ladingModel.SenderId;
+                        }
+                        //TODO: Thêm khách l? + ??a ch?
+                        #endregion
+
+                        #region Ng??i nh?n
+
+                        var recipient = new Recipient();
+                        if (ladingModel.RecipientPhone != string.Empty)
+                        {
+                            var dataR = await _recipientRepository.GetFirstAsync(o => o.Phone == ladingModel.RecipientPhone);
+                            recipient = dataR ?? new Recipient();
+
+                            recipient.State = (int)StatusSystem.Enable;
+                            recipient.Address = ladingModel.RecipientAddress;
+                            recipient.Name = ladingModel.RecipientName;
+                            recipient.Phone = ladingModel.RecipientPhone;
+                            recipient.CompanyName = ladingModel.RecipientCompany;
+                            recipient.AddressNote = ladingModel.AddressNoteTo;
+                            //Insert recipient
+                            if (dataR != null)
+                            {
+                                _recipientRepository.Update(recipient);
+
+                            }
+                            else
+                            {
+                                _recipientRepository.Insert(recipient);
+                            }
+                            _recipientRepository.SaveChanges();
+                            lading.RecipientId = recipient.Id;
+                        }
+                        #endregion
+
+                        #region Thông tin
+
+                        lading.PartnerCode = ladingModel.PartnerCode;
+                        lading.State = (int)StatusSystem.Enable;
+                        if (ladingModel.Id <= 0)
+                        {
+                            lading.CreateDate = DateTime.Now;
+                            ladingModel.OficerId = user.OfficerID;
+                            lading.OfficerId = user.OfficerID;
+                            lading.OfficerPickup = user.OfficerID;
+                            lading.POCurrent = pOId;
+                        }
+                        lading.TransportID = ladingModel.TransportID;
+                        lading.StructureID = ladingModel.StructureID;
+                        lading.RDFrom = ladingModel.RDFrom;
+                        lading.RDTo = ladingModel.RDTo;
+                        lading.IsGlobal = ladingModel.IsGlobal;
+                        lading.CitySendId = ladingModel.CitySendId;
+                        lading.DistrictFrom = ladingModel.DistrictFrom;
+                        lading.CityRecipientId = ladingModel.CityRecipientId;
+                        lading.DistrictTo = ladingModel.DistrictTo;
+                        lading.AddressNoteTo = ladingModel.AddressNoteTo;
+                        lading.AddressNoteFrom = ladingModel.AddressNoteFrom;
+                        #region [Set PostOffice] 
+                        int? poFrom = user.PostOfficeId;
+                        int? poTo = ladingModel.POTo;
+
+                        if ((ladingModel.LatTo ?? 0) == 0 || (ladingModel.LngTo ?? 0) == 0 || (ladingModel.AddressTo.Trim().ToUpper().Equals(ladingTemp.AddressTo.Trim().ToUpper())))
+                        {
+                            ladingModel.LatTo = ladingTemp.LatTo;
+                            ladingModel.LngTo = ladingTemp.LngTo;
+                            ladingModel.POTo = ladingTemp.POTo;
+                            poTo = ladingTemp.POTo;
+                        }
+                        if ((poTo ?? 0) <= 0)
+                        {
+                            var po = await _postOfficeRepository.GetDistanceMinByLocation(lading.CityRecipientId ?? 0, ladingModel.LatTo ?? 0, ladingModel.LngTo ?? 0, 2);
+                            poTo = po.PostOfficeID;
+                        }
+                        lading.POCurrent = pOId;
+                        lading.POFrom = poFrom;
+                        if (!lading.POCreated.HasValue)
+                        {
+                            lading.POCreated = pOId;
+                        }
+                        lading.POTo = poTo;
+                        if (_postOfficeRepository.Any(o => o.PostOfficeID == lading.POFrom))
+                        {
+                            lading.CenterFrom = (await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == lading.POFrom)).POCenterID ?? lading.POFrom;
+                        }
+                        if (_postOfficeRepository.Any(o => o.PostOfficeID == lading.POTo))
+                        {
+                            lading.CenterTo = (await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == lading.POTo)).POCenterID ?? lading.POTo;
+                        }
+                        #endregion
+                        lading.AddressFrom = ladingModel.AddressFrom;
+                        lading.AddressTo = ladingModel.AddressTo;
+                        lading.NameFrom = ladingModel.NameFrom;
+                        lading.NameTo = ladingModel.NameTo;
+                        lading.PhoneFrom = ladingModel.PhoneFrom;
+                        lading.PhoneTo = ladingModel.PhoneTo;
+                        lading.CompanyFrom = ladingModel.CompanyFrom;
+                        lading.CompanyTo = ladingModel.CompanyTo;
+                        //
+                        lading.LatFrom = ladingModel.LatFrom;
+                        lading.LngFrom = ladingModel.LngFrom;
+                        lading.LatTo = ladingModel.LatTo;
+                        lading.LngTo = ladingModel.LngTo;
+                        lading.RouteLength = ladingModel.RouteLength;
+                        lading.Weight = ladingModel.Weight;
+                        lading.Id = ladingModel.Id;
+                        lading.Width = ladingModel.Width;
+                        lading.Height = ladingModel.Height;
+                        lading.Length = ladingModel.Length;
+                        lading.Number = ladingModel.Number ?? 1;
+                        if (lading.Number == 0) lading.Number = 1;
+                        lading.Mass = ladingModel.Mass;
+                        lading.Noted = ladingModel.Noted;
+                        lading.Description = ladingModel.Description;
+                        lading.OnSiteDeliveryPrice = ladingModel.OnSiteDeliveryPrice;
+                        #endregion
+
+                        #region Dịch vụ + Thanh toán
+
+                        lading.ServiceId = ladingModel.ServiceId;
+                        lading.PaymentType = ladingModel.PaymentId;
+
+                        #endregion
+                        if (ladingModel.COD > 0)
+                        {
+                            lading.StatusCOD = (int)StatusCOD.ChuaThu;
+                        }
+                        else
+                        {
+                            lading.StatusCOD = (int)StatusCOD.KhongCOD;
+                        }
+                        #region Dịch vụ giá trị gia tăng
+                        lading.COD = ladingModel.COD;
+                        lading.CODPrice = ladingModel.CODPrice;
+                        if (ladingModel.PPXDPercent > 0)
+                        {
+                            lading.PPXDPercent = ladingModel.PPXDPercent;
+                        }
+                        else if (ladingModel.PPXDPrice > 0)
+                        {
+                            lading.PPXDPercent = ladingModel.PPXDPrice;
+                        }
+                        lading.Insured = ladingModel.Insured;
+                        lading.InsuredPrice = ladingModel.InsuredPrice;
+                        lading.TotalPriceDVGT = ladingModel.TotalPriceDVGT;
+                        lading.PriceVAT = ladingModel.PriceVAT;
+                        lading.NoteTypePack = ladingModel.NoteTypePack;
+                        lading.PackPrice = ladingModel.PackPrice;
+                        lading.PackId = ladingModel.PackId;//Loại đóng gói
+                        lading.PriceOther = ladingModel.PriceOther;
+                        lading.InsuredPercent = ladingModel.InsuredPercent;
+                        lading.KDPrice = ladingModel.KDPrice;
+                        lading.KDNumber = ladingModel.KDNumber;
+                        #endregion
+                        #region Thông tin kiên
+                        if (ladingModel.Number_L_W_H_DIM_List != null && ladingModel.Number_L_W_H_DIM_List.Count > 0)
+                        {
+                            lading.Number_L_W_H_DIM = string.Join(",", ladingModel.Number_L_W_H_DIM_List.Where(o => o.Number > 0 && o.DIM > 0).Select(o => o.Number + "_" + o.Long + "_" + o.Width + "_" + o.Height + "_" + o.DIM));
+                        }
+                        #endregion
+                        lading.ModifiedBy = user.OfficerID;
+                        if ((ladingModel.PriceListId ?? 0) > 0)
+                        {
+                            lading.PriceListId = ladingModel.PriceListId;
+                        }
+
+                        lading.IsPriceMain = ladingModel.IsPriceMain;
+                        lading.PriceMain = ladingModel.PriceMain;
+                        lading.Amount = ladingModel.Amount;
+                        #region Thêm vận đơn Lading
+                        lading.Id = 0;
+                        lading.OfficerId = user.OfficerID;
+                        lading.OfficerPickup = user.OfficerID;
+                        lading.CreateDate = DateTime.Now;
+                        if (lading.PaymentType.HasValue && lading.PaymentType == (int)PaymentType.Done)
+                        {
+                            lading.PaymentAmount = true;
+                        }
+                        else
+                        {
+                            lading.PaymentAmount = false;
+                        }
+                        _ladingRepository.InsertAndInsertLadingHistory(lading);
+                        _ladingRepository.SaveChanges();
+                        if (string.IsNullOrEmpty(ladingModel.Code))
+                        {
+                            lading.Code = _ladingRepository.CodeGenerationByLocationCode(postOffice.LocationId ?? 0, (int)lading.Id);
+                        }
+                        else
+                        {
+                            lading.Code = ladingModel.Code;
+                            //Cập nhập cấp vận đơn
+                            var provideLading = await _provideLadingRepository.GetFirstAsync(o => o.LadingCode.ToUpper().Equals(ladingModel.Code.ToUpper()));
+                            if (provideLading != null && provideLading.Status == 201)
+                            {
+                                provideLading.Status = 202;
+                                _provideLadingRepository.Update(provideLading);
+                            }
+                        }
+                        ladingTemp.LadingId = (int)lading.Id;
+                        ladingTemp.Status = (int)StatusLading.DaLayHang;
+                        _ladingTempRepository.Update(ladingTemp);
+                        if (ladingModel.AnotherServiceId != null)
+                        {
+                            foreach (var serviceId in ladingModel.AnotherServiceIds)
+                            {
+                                var serviceMap = new LadingMapService { LadingId = lading.Id, ServiceId = serviceId };
+                                //Insert serviceMap
+                                _ladingMapPriceRepository.Insert(serviceMap);
+                            }
+                            _ladingMapPriceRepository.SaveChanges();
+                        }
+                        _ladingRepository.SaveChanges();
+                        #endregion
+                        _logger.LogInformation($"Update LadingTempID {ladingTemp.Id}: user {user.UserName}");
+                        _logger.LogInformation($"Update LadingID {lading.Id}: user {user.UserName}");
+                        return Json(lading);
+
+                    }
+                    else return JsonError("Yêu cầu này đã được lấy hàng thành công");
                 }
                 else
                 {
                     return JsonError("Không tìm thấy thông tin trạm gửi");
                 }
-
-                #endregion
-                _logger.LogInformation($"Update LadingTempID {lading.Id}: user {user.UserName}");
-                return Json(lading);
             }
+
             return JsonError("null");
         }
         [HttpPost("Update")]
@@ -1251,6 +1299,10 @@ namespace NascoWebAPI.Controllers
                     {
                         includeProperties.Add(inc => inc.Transport);
                     }
+                    else if (colValue == "pricelistid")
+                    {
+                        includeProperties.Add(inc => inc.PriceList);
+                    }
                 }
             }
             return includeProperties.ToArray();
@@ -1298,6 +1350,10 @@ namespace NascoWebAPI.Controllers
                     else if (colValue == "transport")
                     {
                         includeProperties.Add(inc => inc.Transport);
+                    }
+                    else if (colValue == "pricelistid")
+                    {
+                        includeProperties.Add(inc => inc.PriceList);
                     }
                 }
             }

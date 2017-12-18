@@ -56,6 +56,7 @@ namespace NascoWebAPI.Models
         public double? HHKGPercent { get; set; }//% Hàng hóa khai giá
         public double? BPPercent { get; set; }//% báo phát
         public double? PPXDPercent { get; set; }//% thu hồi phụ phí xăng dầu
+        public double? PPXDPrice { get; set; }//thu hồi phụ phí xăng dầu
         public double? COD { get; set; }//Số tiền COD nhập
         public double? Insured { get; set; }//Số tiền bảo hiểm hàng hóa nhập
         public double? PackPrice { get; set; }//Số tiền đóng gói

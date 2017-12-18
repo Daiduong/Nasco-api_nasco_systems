@@ -33,6 +33,9 @@ namespace NascoWebAPI.Data
         void Update(T entity);
         void Delete(T entity);
         void DeleteWhere(Expression<Func<T, bool>> predicate);
+        void Unchanged(T entity);
+        void Detached(T entity);
+
         int SaveChanges();
         void Dispose();
 

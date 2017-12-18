@@ -102,6 +102,10 @@ namespace NascoWebAPI.Data
         public string NoteTypePack { get; set; }
         public string Number_L_W_H_DIM { get; set; }
         public DateTime? ModifiedDate { get; set; }
+        public int? OfficerTransferId { get; set; }
+        public int? AmountKeepBy { get; set; }
+        public int? BKDeliveryId { get; set; }
+
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }
         [ForeignKey("SenderId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -125,7 +129,8 @@ namespace NascoWebAPI.Data
         public virtual Location DistrictToObj { get; set; }
         [ForeignKey("TransportID"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Transport Transport { get; set; }
-
+        [ForeignKey("PriceListId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public virtual PriceList PriceList { get; set; }
         public Lading()
         {
 
