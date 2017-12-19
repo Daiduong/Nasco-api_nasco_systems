@@ -83,8 +83,12 @@ namespace NascoWebAPI.Data
                 throw new ArgumentException("Error", ex);
             }
         }
-
-        public virtual void UpdateAndInsertLadingHistory(Lading entity, int? typeReasonID = null, string location = null)
+        public override void Update(Lading entity)
+        {
+            entity.ModifiedDate = DateTime.Now;
+            base.Update(entity);
+        }
+        public virtual void UpdateAndInsertLadingHistory(Lading entity, int? typeReasonID = null, string location = null, string note ="")
         {
             try
             {
@@ -97,10 +101,11 @@ namespace NascoWebAPI.Data
                         if (typeReson != null)
                         {
                             entity.Noted = typeReson.TypeReasonName;
+                            note = typeReson.TypeReasonName;
                         }
                     }
                 }
-                if (entity.Status.Value == (int)StatusLading.ThanhCong && entity.COD.Value > 0)
+                if (entity.Status.Value == (int)StatusLading.ThanhCong && (entity.COD ?? 0) > 0)
                 {
                     entity.StatusCOD = (int)StatusCOD.DaThu;
                     entity.CODKeepBy = entity.OfficerId;
@@ -131,18 +136,20 @@ namespace NascoWebAPI.Data
                     }
                 }
                 this.Update(entity);
-                LadingHistory ldHistory = new LadingHistory();
-                ldHistory.LadingId = entity.Id;
-                ldHistory.OfficerId = entity.ModifiedBy;
-                ldHistory.Location = location;
-                //var office = _iOfficerRepository.GetSingle(o => o.OfficerID == entity.OfficerId);
-                //var postOffice = _iDepartmentRepository.GetSingle(o => o.DeparmentID == office.DeparmentID);
-
-                ldHistory.PostOfficeId = entity.POCurrent;
-                ldHistory.Status = entity.Status;
-                ldHistory.DateTime = DateTime.Now;
-                ldHistory.TypeReason = typeReasonID;
-                ldHistory.Note = entity.Noted;
+                LadingHistory ldHistory = new LadingHistory
+                {
+                    LadingId = entity.Id,
+                    OfficerId = entity.ModifiedBy,
+                    Location = location,
+                    //var office = _iOfficerRepository.GetSingle(o => o.OfficerID == entity.OfficerId);
+                    //var postOffice = _iDepartmentRepository.GetSingle(o => o.DeparmentID == office.DeparmentID);
+                    PostOfficeId = entity.POCurrent,
+                    Status = entity.Status,
+                    DateTime = DateTime.Now,
+                    CreatedDate = DateTime.Now,
+                    TypeReason = typeReasonID,
+                    Note = note
+                };
                 ldHistory = UpdateLatLngHistory(ldHistory);
                 _iLadingHistoryRepository.Insert(ldHistory);
                 _iLadingHistoryRepository.SaveChanges();

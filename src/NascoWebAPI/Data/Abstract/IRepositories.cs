@@ -18,7 +18,7 @@ namespace NascoWebAPI.Data
     public interface ILadingRepository : IRepository<Lading>
     {
         void InsertAndInsertLadingHistory(Lading entity);
-        void UpdateAndInsertLadingHistory(Lading entity, int? typeReasonID = null, string location = null);
+        void UpdateAndInsertLadingHistory(Lading entity, int? typeReasonID = null, string location = null, string note ="");
         Task<IEnumerable<Lading>> GetPickUpAsync(Officer officer);
         Task<LadingHistory> GetLastLadingHistoryAsync(long ladingId);
         Task<IEnumerable<Lading>> GetLadingReport(int officerID, int reportType);

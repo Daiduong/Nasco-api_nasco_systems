@@ -49,7 +49,7 @@ namespace NascoWebAPI.Helper
                 {
                     if (prop.Name.ToUpper() == jProp.Key.ToUpper())
                     {
-                        if (jProp.Value != null)
+                        if (jProp.Value != null && prop.CanWrite)
                         {
                             try
                             {

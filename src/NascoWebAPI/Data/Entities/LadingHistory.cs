@@ -13,6 +13,7 @@ namespace NascoWebAPI.Data
         public Nullable<long> LadingId { get; set; }
         public Nullable<int> Status { get; set; }
         public Nullable<System.DateTime> DateTime { get; set; }
+        public Nullable<System.DateTime> CreatedDate { get; set; }
         public Nullable<int> PostOfficeId { get; set; }
         public Nullable<int> OfficerId { get; set; }
         public string Mobile { get; set; }

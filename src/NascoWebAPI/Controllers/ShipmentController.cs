@@ -1146,6 +1146,7 @@ namespace NascoWebAPI.Controllers
                         if (lading.CopyFromJOject(jsonData))
                         {
                             lading.ModifiedBy = user.OfficerID;
+                            //lading.Recipient = null;
                             if ((int)StatusLading.DangLayHang == lading.Status)
                             {
                                 if (lading.OfficerPickup != user.OfficerID)
@@ -1171,11 +1172,11 @@ namespace NascoWebAPI.Controllers
                                     lading.Status == (int)StatusLading.PhatKhongTC)
                                 {
                                     int? typeReasonID = (int?)json.typeReasonID;
-                                    _ladingRepository.UpdateAndInsertLadingHistory(lading, typeReasonID, location);
+                                    _ladingRepository.UpdateAndInsertLadingHistory(lading, typeReasonID, location, lading.Noted);
                                 }
                                 else
                                 {
-                                    _ladingRepository.UpdateAndInsertLadingHistory(lading, null, location);
+                                    _ladingRepository.UpdateAndInsertLadingHistory(lading, null, location, lading.Noted);
                                 }
                             }
 
@@ -1187,8 +1188,6 @@ namespace NascoWebAPI.Controllers
                     return JsonError("Lading Not Found");
                 }
                 return JsonError("Id invalid or empty");
-
-
             }
             return JsonError("null");
         }

@@ -13,13 +13,22 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NascoWebAPI.Data
 {
-    [Table("Transport")]
-    public partial class Transport
+    [Table("Service")]
+    public partial class Service
     {
-        public int Id { get; set; }
-        public string TransportCode { get; set; }
-        public string TransportName { get; set; }
-        public Nullable<bool> IsGlobal { get; set; }
-        public Nullable<int> Index { get; set; }
+        public int ServiceID { get; set; }
+        public string ServiceName { get; set; }
+        public string ServiceCode { get; set; }
+        public Nullable<int> State { get; set; }
+        public Nullable<int> Type { get; set; }
+        public string Description { get; set; }
+        public Nullable<int> WeightType { get; set; }
+        public Nullable<int> PriceType { get; set; }
+        public Nullable<bool> WeightThan100 { get; set; }
+        public Nullable<bool> OnSiteDelivery { get; set; }
+        public Nullable<double> WeightNorms { get; set; }
+        public Nullable<int> GSId { get; set; }
+        public Nullable<bool> IsPublic { get; set; }
+        public Nullable<int> DividendOfVW { get; set; }
     }
 }

@@ -13,13 +13,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NascoWebAPI.Data
 {
-    [Table("Transport")]
-    public partial class Transport
+    [Table("DividendOfVolumetricWeight")]
+    public partial class DividendOfVolumetricWeight
     {
         public int Id { get; set; }
-        public string TransportCode { get; set; }
-        public string TransportName { get; set; }
-        public Nullable<bool> IsGlobal { get; set; }
-        public Nullable<int> Index { get; set; }
+        public Nullable<int> Dividend { get; set; }
+        public string Description { get; set; }
+        public Nullable<bool> Default { get; set; }
     }
 }
