@@ -25,19 +25,10 @@ namespace NascoWebAPI.Data
         public IEnumerable<PriceList> GetListPriceListByCustomer(int? customerId = null, bool union = true)
         {
             var query = this.GetAll();
-
-            if (customerId.HasValue && _context.Customers.Any(o => o.CustomerID == customerId.Value))
+            var priceListCustomers = _context.PriceListCustomers.Where(o => o.PriceListId.HasValue && o.State == 0 && o.CustomerId == customerId);
+            if (priceListCustomers.Count() > 0)
             {
-                var customer = _context.Customers.Single(o => o.CustomerID == customerId.Value);
-                if (!string.IsNullOrEmpty(customer.PriceListIds))
-                {
-                    var pricelistIds = customer.PriceListIds.Split(',').Select(int.Parse);
-                    query = query.Where(o => pricelistIds.Contains(o.PriceListID));
-                }
-                else
-                {
-                    query = query.Where(o => (o.IsApply ?? false));
-                }
+                query = query.Where(o => priceListCustomers.Any(p => p.PriceListId == o.PriceListID));
             }
             else
             {

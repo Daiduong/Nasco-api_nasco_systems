@@ -69,7 +69,7 @@ namespace NascoWebAPI
         public virtual DbSet<Job> Jobs { get; set; }
         public virtual DbSet<PriceServiceOther> PriceServiceOthers { get; set; }
         public virtual DbSet<DividendOfVolumetricWeight> DividendOfVolumetricWeights { get; set; }
-
+        public virtual DbSet<PriceListCustomer> PriceListCustomers { get; set; }
         #region View
         public virtual DbSet<BB_View_Calculator> BB_View_Calculators { get; set; }
         public virtual DbSet<BB_View_Lading_Service> BB_View_Lading_Services { get; set; }
