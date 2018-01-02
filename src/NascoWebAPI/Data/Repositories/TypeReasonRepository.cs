@@ -92,28 +92,29 @@ namespace NascoWebAPI.Data
 
         public async Task<PostOffice> GetDistanceMinByLocation(int cityId, double lat, double lng, int? type)
         {
-            var postOfficeId = (_context.Locations.SingleOrDefault( o => o.LocationId == cityId) ?? new Location()).PostOfficeId ?? 0;
+            var postOfficeId = (_context.Locations.SingleOrDefault(o => o.LocationId == cityId) ?? new Location()).PostOfficeId ?? 0;
             //var postOfficeId = (unitOfWork.AreaRepository._GetAreaById((areaId ?? 0)) ?? new Area()).CenterId ?? 0;
-            var postOffices = await this.GetListPostOfficeInCenter(postOfficeId);
-            if (type.HasValue)
+            var postOffice = this.GetSingle(o => o.State == 0 && o.PostOfficeID == postOfficeId);
+            if (postOffice != null && !postOffice.ParentId.HasValue)
             {
-                switch (type.Value)
+                var postOffices = await this.GetListPostOfficeInCenter(postOfficeId);
+                if (type.HasValue)
                 {
-                    case 1:
-                        postOffices = postOffices.Where(o => (o.IsFrom ?? false)).ToList();
-                        break;
-                    case 2:
-                        postOffices = postOffices.Where(o => (o.IsTo ?? false)).ToList();
-                        break;
+                    switch (type.Value)
+                    {
+                        case 1:
+                            postOffices = postOffices.Where(o => (o.IsFrom ?? false)).ToList();
+                            break;
+                        case 2:
+                            postOffices = postOffices.Where(o => (o.IsTo ?? false)).ToList();
+                            break;
+                    }
                 }
+                if (postOffices.Count() == 1)
+                    return postOffices.First();
+                return this.GetByDistanceMin(postOffices, lat, lng);
             }
-            if (postOffices.Count() == 1)
-                return postOffices.First();
-            else
-            {
-                var postOffice = this.GetByDistanceMin(postOffices, lat, lng);
-                return postOffice;
-            }
+            return postOffice;
 
         }
     }

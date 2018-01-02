@@ -323,11 +323,7 @@ namespace NascoWebAPI.Controllers
                     {
                         return JsonError("Không tìm thấy bảng kê phát");
                     }
-                    if (bkDelivery.Status != 0 || bkDelivery.Status != 700)
-                    {
-                        //return JsonError("Bảng kê phát này đã được xác nhận");
-                    }
-                    else
+                    if (bkDelivery.Status == 0 || bkDelivery.Status == 700)
                     {
                         bkDelivery.Status = 701;//Xác nhận - đang phát
                         bkDelivery.ModifiedDate = DateTime.Now;
@@ -335,7 +331,7 @@ namespace NascoWebAPI.Controllers
                         _bkDeliveryRepository.SaveChanges();
                     }
                     var listLadingID = bkDelivery.ListLadingId.Replace("//", ";").Split(';');
-                    var result = await _ladingRepository.GetAsync(l => listLadingID.Contains(l.Id.ToString()), includeProperties: includeProperties);
+                    var result = await _ladingRepository.GetAsync(l => l.BKDeliveryId.HasValue && l.BKDeliveryId == bkDelivery.ID_BK_Delivery, includeProperties: includeProperties);
                     if (result == null)
                     {
                         return JsonError("Not Found");
@@ -871,17 +867,19 @@ namespace NascoWebAPI.Controllers
                             var customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
                             if (customerExists == null)
                             {
-                                Customer cus = new Customer();
-                                cus.Address = ladingModel.SenderAddress;
-                                cus.CompanyName = ladingModel.SenderCompany;
-                                cus.Phone = ladingModel.SenderPhone;
-                                cus.CustomerName = ladingModel.SenderName;
-                                cus.State = 0;
-                                cus.AddressNote = ladingModel.AddressNoteFrom;
-                                cus.Create_Date = DateTime.Now;
-                                cus.Create_By = user.OfficerID;
-                                cus.Type = 0;//Khách vãng lai
-                                cus.PostOffice_Id = pOId;
+                                Customer cus = new Customer
+                                {
+                                    Address = ladingModel.SenderAddress,
+                                    CompanyName = ladingModel.SenderCompany,
+                                    Phone = ladingModel.SenderPhone,
+                                    CustomerName = ladingModel.SenderName,
+                                    State = 0,
+                                    AddressNote = ladingModel.AddressNoteFrom,
+                                    Create_Date = DateTime.Now,
+                                    Create_By = user.OfficerID,
+                                    Type = 0,//Khách vãng lai
+                                    PostOffice_Id = pOId
+                                };
                                 //Insert Customer
                                 _customerRepository.Insert(cus);
                                 _customerRepository.SaveChanges();

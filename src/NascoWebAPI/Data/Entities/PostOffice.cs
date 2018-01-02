@@ -27,5 +27,6 @@ namespace NascoWebAPI.Data
         public int? POCenterID { get; set; }
         public bool? IsFrom { get; set; }
         public bool? IsTo { get; set; }
+        public int? ParentId { get; set; }
     }
 }
