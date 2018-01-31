@@ -3,6 +3,7 @@ using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace NascoWebAPI.Data
@@ -158,6 +159,10 @@ namespace NascoWebAPI.Data
                 double totalPrice = lading.PPXDPercent + lading.PriceMain + lading.PriceOther + lading.TotalPriceDVGT ?? 0;
                 double VATPrice = totalPrice * 10 / 100;
                 totalPrice = totalPrice + VATPrice;
+                model.Amount = totalPrice;
+                model.PriceMain = lading.PriceMain;
+                model.TotalPriceDVGT = lading.TotalPriceDVGT;
+                model.PPXDPercent = lading.PPXDPercent;
                 double discountAmount = 0;
                 if (!string.IsNullOrEmpty(model.CouponCode))
                 {

@@ -560,7 +560,7 @@ namespace NascoWebAPI.Controllers
                 if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
                 {
                     customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
-                    if (customerExists == null)
+                    if (customerExists != null)
                     {
                         existedCustomer = true;
                     }
@@ -926,7 +926,7 @@ namespace NascoWebAPI.Controllers
                         if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
                         {
                             customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
-                            if (customerExists == null)
+                            if (customerExists != null)
                             {
                                 existedCustomer = true;
                             }
