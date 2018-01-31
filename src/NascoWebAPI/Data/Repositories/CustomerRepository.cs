@@ -13,7 +13,7 @@ namespace NascoWebAPI.Data
         }
         public async  Task<Customer> GetCustomerByPhone( string phone)
         {
-            return await this.GetFirstAsync(o => o.Phone == phone);
+            return await this.GetFirstAsync(o => ((o.Phone != null && o.Phone == phone) || (o.Phone2 != null && o.Phone2 == phone)) && o.State == 0);
         }
         public string GetCode(int id)
         {

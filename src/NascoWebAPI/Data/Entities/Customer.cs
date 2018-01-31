@@ -46,5 +46,10 @@ namespace NascoWebAPI.Data
         public string InstanceIDToken { get; set; }
         public string AddressNote { get; set; }
         public string PriceListIds { get; set; }
+        public string Phone2 { get; set; }
+        [ForeignKey("DistrictId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public Location District { get; set; }
+        [ForeignKey("CityId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public Location City { get; set; }
     }
 }

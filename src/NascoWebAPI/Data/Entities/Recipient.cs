@@ -23,10 +23,18 @@ namespace NascoWebAPI.Data
         public int Id { get; set; }
         public string Name { get; set; }
         public string Phone { get; set; }
+        public string Phone2 { get; set; }
         public string Address { get; set; }
         public string AddressNote { get; set; }
-        
+        public int? CityId { get; set; }
+        public int? DistrictId { get; set; }
+        public double? Lat { get; set; }
+        public double? Lng { get; set; }
         public string CompanyName { get; set; }
         public Nullable<int> State { get; set; }
+        [ForeignKey("DistrictId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public Location District { get; set; }
+        [ForeignKey("CityId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public Location City { get; set; }
     }
 }

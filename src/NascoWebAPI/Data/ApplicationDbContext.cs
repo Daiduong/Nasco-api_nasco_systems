@@ -40,7 +40,7 @@ namespace NascoWebAPI
         public virtual DbSet<Service> Services { get; set; }
         public virtual DbSet<Recipient> Recipients { get; set; }
         public virtual DbSet<BKDelivery> BKDeliveries { get; set; }
-        public virtual DbSet<Status> Statuses { get; set; }
+        public virtual DbSet<LadingStatus> LadingStatuses { get; set; }
         public virtual DbSet<CODStatus> CODStatuses { get; set; }
         public virtual DbSet<Transport> Transports { get; set; }
         public virtual DbSet<Transport_Service> Transport_Services { get; set; }
@@ -70,6 +70,15 @@ namespace NascoWebAPI
         public virtual DbSet<PriceServiceOther> PriceServiceOthers { get; set; }
         public virtual DbSet<DividendOfVolumetricWeight> DividendOfVolumetricWeights { get; set; }
         public virtual DbSet<PriceListCustomer> PriceListCustomers { get; set; }
+        public virtual DbSet<Flight> Flights { get; set; }
+        public virtual DbSet<MAWB> MAWBs { get; set; }
+        public virtual DbSet<Status> Statuses { get; set; }
+        public virtual DbSet<Promotion> Promotions { get; set; }
+        public virtual DbSet<Coupon> Coupons { get; set; }
+        public virtual DbSet<CouponCustomer> CouponCustomers { get; set; }
+        public virtual DbSet<CouponOfficer> CouponOfficers { get; set; }
+        public virtual DbSet<CouponLading> CouponLadings { get; set; }
+        public virtual DbSet<DiscountType> DiscountTypes { get; set; }
         #region View
         public virtual DbSet<BB_View_Calculator> BB_View_Calculators { get; set; }
         public virtual DbSet<BB_View_Lading_Service> BB_View_Lading_Services { get; set; }

@@ -32,10 +32,10 @@ namespace NascoWebAPI.Services
             var identity = await GetClaimsIdentity(officer, loginModel);
             if (identity == null)
             {
-                _logger.LogInformation($"Invalid username ({loginModel.UserName}) or password ({loginModel.Password})");
+                _logger.LogInformation($"Invalid username or password");
                 return new
                 {
-                    errorMessage = $"Invalid username ({loginModel.UserName}) or password ({loginModel.Password})"
+                    errorMessage = $"Invalid username or password"
                 };
             }
 
@@ -63,6 +63,8 @@ namespace NascoWebAPI.Services
             {
                 userId = user.OfficerID.ToString(),
                 userFullName = user.OfficerName,
+                jobId = user.JobId,
+                departmentId = user.DeparmentID,
                 token = encodedJwt,
                 expires = (int)_jwtOptions.ValidFor.TotalSeconds,
                 errorMessage = (string)null

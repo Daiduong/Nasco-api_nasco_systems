@@ -43,6 +43,22 @@ namespace NascoWebAPI.Controllers
             }
             return JsonError("null");
         }
+        [HttpGet("Search")]
+        public async Task<JsonResult> Search(string s)
+        {
+            var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
+            var user = await _officeRepository.GetSingleAsync(o => o.UserName == jwtDecode.Subject);
+            if (user != null && !string.IsNullOrWhiteSpace(s))
+            {
+                var result = await _recipientRepository.GetAsync(c => (c.Phone != null && c.Phone.Contains(s))
+                                   || (c.Phone2 != null && c.Phone2.Contains(s))
+                                   || (c.Name != null && c.Name.ToUpper().Contains(s.ToUpper()))
+                                   , null, null, 10
+                                   , inc => inc.City, inc => inc.District);
+                return Json(result);
+            }
+            return JsonError("null");
+        }
         #endregion
     }
 }

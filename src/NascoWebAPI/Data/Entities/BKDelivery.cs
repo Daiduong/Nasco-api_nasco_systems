@@ -25,5 +25,9 @@ namespace NascoWebAPI.Data
         public Nullable<int> State { get; set; }
         public int? ModifiedBy { get; set; }
         public Nullable<System.DateTime> ModifiedDate { get; set; }
+        public int? OfficerConfirmId { get; set; }
+        public int? POCreate { get; set; }
+        public int? PostOfficeId { get; set; }
+        public int? PODeliveryId { get; set; }
     }
 }

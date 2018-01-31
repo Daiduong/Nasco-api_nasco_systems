@@ -23,7 +23,7 @@ namespace NascoWebAPI.Data
         public Nullable<double> Lng { get; set; }
         public string Location { get; set; }
         [ForeignKey("Status"), DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public virtual Status CurrenSttStatus { get; set; }
+        public virtual LadingStatus CurrenSttStatus { get; set; }
         [ForeignKey("PostOfficeId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual PostOffice PostOffice { get; set; }
         [ForeignKey("OfficerId"), DatabaseGenerated(DatabaseGeneratedOption.None)]

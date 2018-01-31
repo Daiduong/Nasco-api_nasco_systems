@@ -105,7 +105,13 @@ namespace NascoWebAPI.Data
         public int? OfficerTransferId { get; set; }
         public int? AmountKeepBy { get; set; }
         public int? BKDeliveryId { get; set; }
-
+        public int? BKInternalId { get; set; }
+        public int? FlightId { get; set; }
+        public Nullable<int> PostOfficeKeepAmount { get; set; }
+        public Nullable<int> PostOfficeKeepCOD { get; set; }
+        public Nullable<double> DiscountAmount { get; set; }
+        public Nullable<bool> Locked { get; set; }
+        public Nullable<int> CouponLadingId { get; set; }
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }
         [ForeignKey("SenderId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -122,7 +128,7 @@ namespace NascoWebAPI.Data
         [ForeignKey("ServiceId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Service Service { get; set; }
         [ForeignKey("Status"), DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public virtual Status CurrenSttStatus { get; set; }
+        public virtual LadingStatus CurrenSttStatus { get; set; }
         [ForeignKey("DistrictFrom"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Location DistrictFromObj { get; set; }
         [ForeignKey("DistrictTo"), DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -131,6 +137,7 @@ namespace NascoWebAPI.Data
         public virtual Transport Transport { get; set; }
         [ForeignKey("PriceListId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual PriceList PriceList { get; set; }
+
         public Lading()
         {
 

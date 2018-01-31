@@ -13,13 +13,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NascoWebAPI.Data
 {
-    [Table("Job")]
-    public partial class Job
+    [Table("DiscountType")]
+    public partial class DiscountType
     {
         public int Id { get; set; }
-        public string JobTitle { get; set; }
-        public Nullable<double> SalaryMax { get; set; }
-        public Nullable<double> SalaryMin { get; set; }
-        public string JobCode { get; set; }
+        public int? CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public int? ModifiedBy { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+        public int? State { get; set; }
+        public string DiscountName { get; set; }
+        public Nullable<bool> Fixed { get; set; }
+        public string Formula { get; set; }
+        public string Code { get; set; }
     }
 }

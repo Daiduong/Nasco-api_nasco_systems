@@ -18,7 +18,7 @@ namespace NascoWebAPI.Helper
               + "\"postOfficeId\": " + poId + ","
                + "\"sendTypeId\": " + sendType + "}";
             byte[] byteArray = Encoding.UTF8.GetBytes(postData);
-            HttpWebRequest Request = (HttpWebRequest)WebRequest.Create("https://fcm.googleapis.com/fcm/send");
+            HttpWebRequest Request = (HttpWebRequest)WebRequest.Create("https://capi.nascoexpress.com/api/Lading/SendSMS");
             Request.Method = "POST";
             Request.ContentType = "application/json";
 

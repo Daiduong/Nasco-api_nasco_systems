@@ -7,7 +7,7 @@ namespace NascoWebAPI.Models
 {
     public class CalculatePriceModel
     {
-        public double? Amount { get; set; }
+        public double Amount { get; set; }
         public double? PriceMain { get; set; }
         public double? PPXDPrice { get; set; }
         public double? THBBPrice { get; set; }
@@ -22,5 +22,8 @@ namespace NascoWebAPI.Models
         public double? TotalDVGT { get; set; }
         public DateTime? ExpectedDate { get; set; }
         public string StructureName { get; set; }
+        public double DiscountAmount { get; set; }
+        public double GrandTotal { get; set; }
+        public string Message { get; set; }
     }
 }

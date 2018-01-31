@@ -31,7 +31,7 @@ namespace NascoWebAPI.Controllers
         [HttpGet("GetAll")]
         public async Task<JsonResult> GetAll()
         {
-            var result = await _DeliveryReceiveRepository.GetAllAsync(or => or.OrderBy(o=> o.Index) );
+            var result = await _DeliveryReceiveRepository.GetAsync( o => (o.ShowRequest ?? false), or => or.OrderBy(o=> o.Index));
             return Json(result);
 
         }

@@ -17,6 +17,7 @@ namespace NascoWebAPI.Data
         {
             try
             {
+                var message = "";
                 var lading = new Lading() { };
                 lading.SenderId = model.SenderId;
                 lading.Insured = model.Insured;
@@ -78,7 +79,7 @@ namespace NascoWebAPI.Data
                     {
                         var otherRepository = new Repository<BB_View_Lading_Service>(_context);
                         var other = await otherRepository.GetFirstAsync(o => o.ServiceId == otherId);
-                        if (other.ServiceCode.ToUpper() == "DGHH" && model.Mass > 0)//CUOC PHI DONG GOI
+                        if (other.ServiceCode.ToUpper() == "DGHH")//CUOC PHI DONG GOI
                         {
                             lading.PackPrice = model.PackPrice;
                             totalDVGT += lading.PackPrice ?? 0;
@@ -149,33 +150,51 @@ namespace NascoWebAPI.Data
                 }
                 lading.TotalPriceDVGT = totalDVGT;
                 lading.PriceOther = model.PriceOther ?? 0;
+                var priceListCustomer = _context.PriceListCustomers.FirstOrDefault(o => o.PriceListId == model.PriceListId.Value && o.CustomerId == model.SenderId && o.State == 0);
+                var percent = (priceListCustomer != null) ? (priceListCustomer.PriceListPercent ?? 100) / 100 : 1;
+                lading.PPXDPercent *= percent;
+                lading.PriceMain *= percent;
                 #endregion
                 double totalPrice = lading.PPXDPercent + lading.PriceMain + lading.PriceOther + lading.TotalPriceDVGT ?? 0;
                 double VATPrice = totalPrice * 10 / 100;
                 totalPrice = totalPrice + VATPrice;
+                double discountAmount = 0;
+                if (!string.IsNullOrEmpty(model.CouponCode))
+                {
+                    var couponRepository = new CouponRepository(_context);
+                    var discountResult = couponRepository.GetDiscountAmount(model);
+                    if (discountResult.Error == 0)
+                    {
+                        discountAmount = Math.Round((double)discountResult.Data);
+                    }
+                    else message = discountResult.Message;
+                }
                 var calculatePrice = new CalculatePriceModel
                 {
-                    Amount = totalPrice,
-                    PriceMain = lading.PriceMain ?? 0,
-                    PPXDPrice = lading.PPXDPercent ?? 0,
-                    THBBPrice = lading.THBBPrice ?? 0,
-                    BPPrice = lading.BPPrice ?? 0,
-                    CODPrice = lading.CODPrice ?? 0,
-                    InsuredPrice = lading.InsuredPrice ?? 0,
-                    PackPrice = lading.PackPrice ?? 0,
-                    PriceOther = lading.PriceOther ?? 0,
-                    VAT = VATPrice,
-                    KDPrice = lading.KDPrice ?? 0,
+                    Amount = Math.Round(totalPrice),
+                    PriceMain = Math.Round(lading.PriceMain ?? 0),
+                    PPXDPrice = Math.Round(lading.PPXDPercent ?? 0),
+                    THBBPrice = Math.Round(lading.THBBPrice ?? 0),
+                    BPPrice = Math.Round(lading.BPPrice ?? 0),
+                    CODPrice = Math.Round(lading.CODPrice ?? 0),
+                    InsuredPrice = Math.Round(lading.InsuredPrice ?? 0),
+                    PackPrice = Math.Round(lading.PackPrice ?? 0),
+                    PriceOther = Math.Round(lading.PriceOther ?? 0),
+                    VAT = Math.Round(VATPrice, 0),
+                    KDPrice = Math.Round(lading.KDPrice ?? 0),
                     WeightToPrice = weightD,
-                    TotalDVGT = lading.TotalPriceDVGT ?? 0,
+                    TotalDVGT = Math.Round(lading.TotalPriceDVGT ?? 0),
                     ExpectedDate = null,
-                    StructureName = (lading.Weight ?? 0) > 0.5 ? "Hàng Hóa" : "Thư Từ"
+                    StructureName = (lading.Weight ?? 0) > 0.5 ? "Hàng Hóa" : "Thư Từ",
+                    GrandTotal = Math.Round(totalPrice) - discountAmount,
+                    DiscountAmount = discountAmount,
+                    Message = message
                 };
                 return calculatePrice;
             }
             catch (Exception ex)
             {
-                return new CalculatePriceModel();
+                return new CalculatePriceModel() { Message = ex.Message };
             }
         }
 
@@ -219,7 +238,7 @@ namespace NascoWebAPI.Data
                         var deliveryCode = _context.DeliveryReceives.Single(o => o.Id == receive_delivery && o.DeliveryReceiveCode != null && o.DeliveryReceiveCode != string.Empty).DeliveryReceiveCode.Replace("-", "_");
                         while (weightTemp >= 0 && setupWeights.Count(o => o.SWFrom.Value <= weightTemp && o.SWTo.Value > weightTemp) > 0)
                         {
-                            var setupWeight = setupWeights.First(o => o.SWFrom.Value <= weightTemp && o.SWTo.Value > weightTemp);
+                            var setupWeight = setupWeights.OrderBy(o => o.SWTo).ThenByDescending(o => o.SWFrom).First(o => o.SWFrom.Value <= weightTemp && o.SWTo.Value > weightTemp);
                             var priceDetail = priceListDetails.First(o => o.SWId == setupWeight.Id);
 
                             double priceMain = 0;
@@ -246,6 +265,7 @@ namespace NascoWebAPI.Data
                                     break;
                                 case (int)StatusFormula.Formula3:
                                     var weightSubtract = weightTemp - setupWeight.SWFrom.Value;
+                                    weightSubtract = weightSubtract == 0 ? (setupWeight.SWPlus ?? 0) : weightSubtract;
                                     priceDefaul += totalPrice * Math.Ceiling(weightSubtract / ((setupWeight.SWPlus ?? 0) > 0 ? setupWeight.SWPlus.Value : 1));
                                     weightTemp = setupWeight.SWFrom.Value - 0.00000001;
                                     break;
@@ -382,10 +402,14 @@ namespace NascoWebAPI.Data
 
         public double GetPriceHightValue(int quantity, double price, int rdId, int structureId)
         {
+            var priceRange = _context.PriceHighValues.Where(o => o.Quantity.Value <= quantity
+                                   && o.PriceRange.Value >= price && o.RDFrom.Value == rdId
+                                   && o.StructureId.Value == structureId).Min(o => o.PriceRange);
+
             var priceHighValues = _context.PriceHighValues.Where(o => o.Quantity.Value <= quantity
-                                    && o.PriceRange.Value > price && o.RDFrom.Value == rdId
-                                    && o.StructureId.Value == structureId)
-                                    .OrderByDescending(o => o.Quantity);
+                                     && o.PriceRange.Value == priceRange && o.RDFrom.Value == rdId
+                                     && o.StructureId.Value == structureId)
+                                     .OrderByDescending(o => o.Quantity);
             double priceFree = 0;
             var quantityTemp = quantity;
             while (priceHighValues.Any(o => o.Quantity <= quantityTemp) && quantityTemp > 0)

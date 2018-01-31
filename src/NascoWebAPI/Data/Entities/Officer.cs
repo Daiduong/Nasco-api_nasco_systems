@@ -44,5 +44,7 @@ namespace NascoWebAPI.Data
         public Nullable<int> JobId { get; set; }
         public Nullable<int> ModifiedBy { get; set; }
         public Nullable<System.DateTime> ModifiedWhen { get; set; }
+        [ForeignKey("PostOfficeId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public virtual PostOffice PostOffice { get; set; }
     }
 }

@@ -40,6 +40,9 @@ namespace NascoWebAPI
             services.AddScoped<IAreaRepository, AreaRepository>();
             services.AddScoped<IJobRepository, JobRepository>();
             services.AddScoped<IBKInternalHistoryRepository, BKInternalHistoryRepository>();
+            services.AddScoped<IFlightRepository, FlightRepository>();
+            services.AddScoped<ICouponRepository, CouponRepository>();
+
         }
     }
 }

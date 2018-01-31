@@ -104,6 +104,8 @@ namespace NascoWebAPI.Data
         public string NoteTypePack { get; set; }
         public string Number_L_W_H_DIM { get; set; }
         public Nullable<int> PriceListId { get; set; }
+        public Nullable<double> DiscountAmount { get; set; }
+        public Nullable<int> CouponId { get; set; }
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }
         [ForeignKey("SenderId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -120,7 +122,7 @@ namespace NascoWebAPI.Data
         [ForeignKey("ServiceId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Service Service { get; set; }
         [ForeignKey("Status"), DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public virtual Status CurrenSttStatus { get; set; }
+        public virtual LadingStatus CurrenSttStatus { get; set; }
         [ForeignKey("DistrictFrom"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Location DistrictFromObj { get; set; }
         [ForeignKey("DistrictTo"), DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -129,5 +131,7 @@ namespace NascoWebAPI.Data
         public virtual Transport Transport { get; set; }
         [ForeignKey("PriceListId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual PriceList PriceList { get; set; }
+        [ForeignKey("CouponId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public virtual Coupon Coupon { get; set; }
     }
 }

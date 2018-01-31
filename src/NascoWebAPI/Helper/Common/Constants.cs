@@ -34,7 +34,7 @@ namespace NascoWebAPI.Helper.Common
             Android = 2,
             Web = 4
         }
-      
+
         public enum Role
         {
             Administrator = 1,
@@ -74,6 +74,17 @@ namespace NascoWebAPI.Helper.Common
             CODDangGiuNgay = 9,
             [Description("Tổng COD đang giữ trong tháng")]
             CODDangGiuThang = 10
+        }
+        public enum StatusFlight
+        {
+            Created = 100,
+            TakeOff,
+            Landing,
+            Cancel
+        }
+        public enum JobType
+        {
+            KTBAY = 6
         }
     }
 

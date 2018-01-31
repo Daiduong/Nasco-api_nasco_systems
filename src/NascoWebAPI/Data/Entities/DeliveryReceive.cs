@@ -14,5 +14,7 @@ namespace NascoWebAPI.Data
         public string DeliveryReceiveCode { get; set; }
         public string DeliveryReceiveName { get; set; }
         public Nullable<int> Index { get; set; }
+        public bool? Show { get; set; }
+        public bool? ShowRequest { get; set; }
     }
 }

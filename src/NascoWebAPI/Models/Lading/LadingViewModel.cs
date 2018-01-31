@@ -70,7 +70,7 @@ namespace NascoWebAPI.Models
         public double? Height { get; set; }//Chiều cao
         public double? Width { get; set; }//Chiều rộng
         public double? Mass { get; set; }//khoi luong
-        public double? Amount { get; set; }//Tổng tiền
+        public double Amount { get; set; }//Tổng tiền
         public double? TotalPriceDVGT { set; get; }
         public double? PriceOther { set; get; }
         public bool? IsPriceMain { get; set; }
@@ -123,6 +123,8 @@ namespace NascoWebAPI.Models
         public string PhoneFrom2 { get; set; }
         public string PhoneTo2 { get; set; }
         public string NoteTypePack { get; set; }
+        public string CouponCode { get; set; }
+        public double DiscountAmount { get; set; }
     }
     public class NumberDIM
     {

@@ -18,7 +18,7 @@ namespace NascoWebAPI.Data
     public interface ILadingRepository : IRepository<Lading>
     {
         void InsertAndInsertLadingHistory(Lading entity);
-        void UpdateAndInsertLadingHistory(Lading entity, int? typeReasonID = null, string location = null, string note ="");
+        void UpdateAndInsertLadingHistory(Lading entity, Officer currentUser, int? typeReasonID = null, string location = null, string note = "");
         Task<IEnumerable<Lading>> GetPickUpAsync(Officer officer);
         Task<LadingHistory> GetLastLadingHistoryAsync(long ladingId);
         Task<IEnumerable<Lading>> GetLadingReport(int officerID, int reportType);
@@ -68,7 +68,7 @@ namespace NascoWebAPI.Data
     }
     public interface IRecipientRepository : IRepository<Recipient> { }
     public interface IBKDeliveryRepository : IRepository<BKDelivery> { }
-    public interface IStatusRepository : IRepository<Status> { }
+    public interface IStatusRepository : IRepository<LadingStatus> { }
     public interface ICODStatusRepository : IRepository<CODStatus> { }
     public interface ITransportRepository : IRepository<Transport> { }
     public interface IStructureRepository : IRepository<Structure>
@@ -101,6 +101,15 @@ namespace NascoWebAPI.Data
     public interface IAreaRepository : IRepository<Area> { }
     public interface IJobRepository : IRepository<Job> { }
     public interface IBKInternalHistoryRepository : IRepository<BKInternalHistory> { }
-
-
+    public interface IFlightRepository : IRepository<Flight>
+    {
+        Task<IEnumerable<Flight>> GetListFlight(int? poFrom, int? poTo, int[] statusIds = null, int? pageSize = null, int? pageNo = null, string cols = null);
+        Task<ResultModel<Flight>> TakeOff(FlightModel model);
+        Task<ResultModel<Flight>> Receive(FlightModel model);
+    }
+    public interface ICouponRepository : IRepository<Coupon>
+    {
+        ResultModel<object> GetDiscountAmount(LadingViewModel lading);
+        ResultModel<Coupon> Discount(string code, int currentOffficerId, int ladingId, double discountAmount);
+    }
 }

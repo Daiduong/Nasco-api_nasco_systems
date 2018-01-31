@@ -38,14 +38,11 @@ namespace NascoWebAPI.Data
         public Nullable<int> PODeliveryId { get; set; }
         public Nullable<int> TransportTypeId { get; set; }
         public Nullable<int> GroupServiceId { get; set; }
-        public Nullable<int> TotalLadingRecipientAirport { get; set; }
         public Nullable<int> POAirportId { get; set; }
         public Nullable<bool> IsConfirmByOfficer { get; set; }
         public Nullable<int> FlightId { get; set; }
         public Nullable<int> DepartmentConfirmId { get; set; }
         public Nullable<int> JobConfirmId { get; set; }
-        public string LadingConfirmIds { get; set; }
-        public Nullable<int> TotalLadingConfirm { get; set; }
         public Nullable<int> OfficerConfirmId { get; set; }
         public Nullable<bool> IsAirportToConfirm { get; set; }
     }

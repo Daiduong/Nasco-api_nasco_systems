@@ -13,10 +13,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NascoWebAPI.Data
 {
-    [Table("LadingStatus")]
+    [Table("Status")]
     public partial class Status
     {
-        public int StatusId { get; set; }
+        public int Id { get; set; }
         public string StatusName { get; set; }
+        public string TableName { get; set; }
     }
 }

@@ -76,7 +76,6 @@ namespace NascoWebAPI.Data
                 ldHistory = UpdateLatLngHistory(ldHistory);
                 _iLadingHistoryRepository.Insert(ldHistory);
                 _iLadingHistoryRepository.SaveChanges();
-
             }
             catch (Exception ex)
             {
@@ -88,7 +87,7 @@ namespace NascoWebAPI.Data
             entity.ModifiedDate = DateTime.Now;
             base.Update(entity);
         }
-        public virtual void UpdateAndInsertLadingHistory(Lading entity, int? typeReasonID = null, string location = null, string note ="")
+        public virtual void UpdateAndInsertLadingHistory(Lading entity, Officer currentUser, int? typeReasonID = null, string location = null, string note = "")
         {
             try
             {
@@ -108,30 +107,29 @@ namespace NascoWebAPI.Data
                 if (entity.Status.Value == (int)StatusLading.ThanhCong && (entity.COD ?? 0) > 0)
                 {
                     entity.StatusCOD = (int)StatusCOD.DaThu;
-                    entity.CODKeepBy = entity.OfficerId;
+                    entity.CODKeepBy = currentUser.OfficerID;
+                    entity.PostOfficeKeepCOD = currentUser.PostOfficeId;
                 }
                 if (entity.Status.Value == (int)StatusLading.ThanhCong && entity.PaymentType == (int)PaymentType.Recipient)
                 {
                     entity.PaymentAmount = true;
-                    entity.AmountKeepBy = entity.OfficerId;
+                    entity.AmountKeepBy = currentUser.OfficerID;
+                    entity.PostOfficeKeepAmount = currentUser.PostOfficeId;
                 }
                 if (entity.Status.Value == (int)StatusLading.DaChuyenHoan)
                 {
                     entity.Return = true;
                 }
-                if (entity.BKDeliveryId.HasValue)
+                var statusDelivery = new int[] { (int)StatusLading.DaChuyenHoan, (int)StatusLading.ThanhCong };
+                if (entity.BKDeliveryId.HasValue && entity.Status.HasValue && statusDelivery.Contains(entity.Status.Value))
                 {
                     var bkDelivery = _context.BKDeliveries.SingleOrDefault(o => o.ID_BK_Delivery == entity.BKDeliveryId.Value);
-                    if (bkDelivery == null)
+                    if (bkDelivery != null)
                     {
-                        var statusDelivery = new int[] { (int)StatusLading.DaChuyenHoan, (int)StatusLading.ThanhCong };
-                        if (statusDelivery.Contains(entity.Status.Value))
+                        bkDelivery.TotalLadingDeliveried = (bkDelivery.TotalLadingDeliveried ?? 0) + 1;
+                        if (bkDelivery.TotalLadingDeliveried == bkDelivery.TotalLading)
                         {
-                            bkDelivery.TotalLadingDeliveried = (bkDelivery.TotalLadingDeliveried ?? 0) + 1;
-                            if (bkDelivery.TotalLadingDeliveried == bkDelivery.TotalLading)
-                            {
-                                bkDelivery.Status = 702;
-                            }
+                            bkDelivery.Status = 702;
                         }
                     }
                 }
@@ -139,11 +137,11 @@ namespace NascoWebAPI.Data
                 LadingHistory ldHistory = new LadingHistory
                 {
                     LadingId = entity.Id,
-                    OfficerId = entity.ModifiedBy,
+                    OfficerId = currentUser.OfficerID,
                     Location = location,
                     //var office = _iOfficerRepository.GetSingle(o => o.OfficerID == entity.OfficerId);
                     //var postOffice = _iDepartmentRepository.GetSingle(o => o.DeparmentID == office.DeparmentID);
-                    PostOfficeId = entity.POCurrent,
+                    PostOfficeId = currentUser.PostOfficeId,
                     Status = entity.Status,
                     DateTime = DateTime.Now,
                     CreatedDate = DateTime.Now,
