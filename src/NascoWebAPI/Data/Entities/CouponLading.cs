@@ -24,8 +24,11 @@ namespace NascoWebAPI.Data
         public int? State { get; set; }
         public int? LadingId { get; set; }
         public int? CouponId { get; set; }
-        public int? ApprovedBy { get; set; }
         public double? DiscountAmount { get; set; }
+        public Nullable<bool> IsApproved { get; set; }
+        public Nullable<int> UnapprovedTimes { get; set; }
+        public string Note { get; set; }
+        public Nullable<int> Status { get; set; }
         [ForeignKey("CouponId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Coupon Coupon { get; set; }
     }

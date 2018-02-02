@@ -301,4 +301,13 @@ namespace NascoWebAPI.Helper.Common
         DenSanBay,
         HuyChuyenBay
     }
+    public enum StatusCouponLading
+    {
+        WaitingForApproval = 800,
+        Approved,
+        Unapproved,
+        Responded,
+        Accepted
+    }
+
 }

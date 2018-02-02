@@ -1,4 +1,5 @@
-﻿using NascoWebAPI.Models;
+﻿using NascoWebAPI.Helper.Common;
+using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +26,7 @@ namespace NascoWebAPI.Data
             var result = new ResultModel<object>();
             try
             {
-                var coupon = this.GetByCode(lading.CouponCode);
+                var coupon = this.GetByCode(lading.CouponCode.Trim());
                 if (coupon == null)
                 {
                     result.Message = "Không tìm thấy thông tin mã giảm giá";
@@ -45,9 +46,10 @@ namespace NascoWebAPI.Data
                     {
                         return result.Init(message: "Thông tin giảm giá đã hết hạn.");
                     }
-
+                    var quota = (promotion.Quota ?? 0);
                     var usesPerCoupon = promotion.UsesPerCoupon ?? 0;
                     var usesPerUser = promotion.UsesPerUser ?? 0;
+                    double totalAmountUses = 0;
                     if ((usesPerCoupon) > 0 && usesPerCoupon == (coupon.NumberUses ?? 0))
                     {
                         return result.Init(message: "Đã vượt quá số lần sử dụng cho một mã");
@@ -67,6 +69,15 @@ namespace NascoWebAPI.Data
                             }
                         }
                     }
+                    else if (quota > 0)
+                    {
+                        var couponOfficer = _context.CouponOfficers.FirstOrDefault(o => o.CouponId == coupon.Id && o.State == 0);
+                        totalAmountUses = couponOfficer.TotalAmountUses ?? 0;
+                        if (totalAmountUses > quota)
+                        {
+                            return result.Init(message: "Đã sử dụng hết hạn mức quy định");
+                        }
+                    }
                     var discountType = _context.DiscountTypes.SingleOrDefault(o => o.Id == promotion.DiscountTypeId.Value);
                     double discountAmount = promotion.DiscountAmount ?? 0;
                     if (discountType != null)
@@ -82,6 +93,10 @@ namespace NascoWebAPI.Data
                                 discountAmount *= ((lading.PPXDPercent ?? 0) + (lading.PriceMain ?? 0)) / 100;
                                 break;
                         }
+                    }
+                    if (discountAmount + totalAmountUses > quota && quota > 0)
+                    {
+                        return result.Init(message: $"Hạn mức quy định có thể sử dung {(quota - totalAmountUses)}");
                     }
                     result.Data = discountAmount;
                     result.Error = 0;
@@ -101,7 +116,7 @@ namespace NascoWebAPI.Data
             {
                 var lading = _context.Ladings.SingleOrDefault(o => o.Id == ladingId);
                 if (lading == null) return result.Init(message: "Không tìm thấy thông tin vận đơn");
-                var coupon = this.GetByCode(code);
+                var coupon = this.GetByCode(code.Trim());
                 if (coupon == null) return result.Init(message: "Không tìm thấy thông tin khuyến mãi");
                 coupon.NumberUses = (coupon.NumberUses ?? 0) + 1;
 
@@ -155,7 +170,9 @@ namespace NascoWebAPI.Data
                     ModifiedDate = DateTime.Now,
                     CreatedBy = currentOffficerId,
                     ModifiedBy = currentOffficerId,
-                    ApprovedBy = approvedBy
+                    Status = (int)StatusCouponLading.WaitingForApproval,
+                    IsApproved = false,
+                    UnapprovedTimes = 0
                 };
                 _context.CouponLadings.Add(couponLading);
                 this.SaveChanges();

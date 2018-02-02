@@ -26,6 +26,7 @@ namespace NascoWebAPI.Data
         public int? UserAssignedId { get; set; }
         public int? CouponId { get; set; }
         public int? NumberUses { get; set; }
+        public double? TotalAmountUses { get; set; }
         [ForeignKey("CouponId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Coupon Coupon { get; set; }
     }

@@ -663,8 +663,8 @@ namespace NascoWebAPI.Controllers
                 lading.State = (int)StatusSystem.Enable;
                 lading.CreateDate = DateTime.Now;
                 ladingModel.OficerId = user.OfficerID;
-                lading.OfficerId = ladingModel.OficerId;
-                lading.OfficerPickup = ladingModel.OfficerPickup;
+                lading.OfficerId = user.OfficerID;
+                lading.OfficerPickup = user.OfficerID;
                 lading.POCurrent = pOId;
                 if (ladingModel.Status == 1)
                 {
@@ -740,8 +740,7 @@ namespace NascoWebAPI.Controllers
                 #region D?ch v? + Thanh toán
 
                 lading.ServiceId = ladingModel.ServiceId;
-                if ((ladingModel.Amount - ladingModel.DiscountAmount) == 0)
-                    lading.PaymentType = ladingModel.PaymentId;
+                lading.PaymentType = ladingModel.PaymentId;
                 if ((ladingModel.Amount - ladingModel.DiscountAmount) == 0) lading.PaymentType = (int)PaymentType.Done;
                 if (lading.PaymentType.HasValue && lading.PaymentType == (int)PaymentType.Done)
                 {
@@ -1018,14 +1017,6 @@ namespace NascoWebAPI.Controllers
 
                         lading.PartnerCode = ladingModel.PartnerCode;
                         lading.State = (int)StatusSystem.Enable;
-                        if (ladingModel.Id <= 0)
-                        {
-                            lading.CreateDate = DateTime.Now;
-                            ladingModel.OficerId = user.OfficerID;
-                            lading.OfficerId = user.OfficerID;
-                            lading.OfficerPickup = user.OfficerID;
-                            lading.POCurrent = pOId;
-                        }
                         lading.TransportID = ladingModel.TransportID;
                         lading.StructureID = ladingModel.StructureID;
                         lading.RDFrom = ladingModel.RDFrom;

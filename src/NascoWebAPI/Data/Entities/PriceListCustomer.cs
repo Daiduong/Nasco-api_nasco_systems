@@ -16,5 +16,6 @@ namespace NascoWebAPI.Data
         public Nullable<double> PriceListFuelInternal { get; set; }
         public Nullable<bool> IsApply { get; set; }
         public int? PriceListTypeId { get; set; }
+        public int? Order { get; set; }
     }
 }

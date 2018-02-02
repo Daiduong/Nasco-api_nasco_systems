@@ -31,7 +31,7 @@ namespace NascoWebAPI.Controllers
         [HttpGet("GetListPriceListByCustomer")]
         public JsonResult GetListPriceListByCustomer(int? id = null, bool union = true)
         {
-            return Json(_priceListRepository.GetListPriceListByCustomer(id, union).OrderByDescending(o => o.IsApply).ThenBy(o => o.PriceListTypeId));
+            return Json(_priceListRepository.GetListPriceListByCustomer(id, union));
         }
         #endregion
     }

@@ -41,5 +41,6 @@ namespace NascoWebAPI.Data
         public Nullable<int> UsesPerCoupon { get; set; }
         public Nullable<int> UsesPerUser { get; set; }
         public Nullable<int> NumberUses { get; set; }
+        public Nullable<double> Quota { get; set; }
     }
 }
