@@ -124,17 +124,19 @@ namespace NascoWebAPI.Data
                 if (promotion == null) return result.Init(message: "Không tìm thấy thông tin khuyến mãi");
 
                 promotion.NumberUses = (promotion.NumberUses ?? 0) + 1;
-                int? approvedBy = null;
+                bool isApproved = false;
                 if ((promotion.IsInternal ?? true))
                 {
                     var couponOfficer = _context.CouponOfficers.FirstOrDefault(o => o.CouponId == coupon.Id && o.State == 0);
                     couponOfficer.NumberUses = (couponOfficer.NumberUses ?? 0) + 1;
                     couponOfficer.ModifiedBy = currentOffficerId;
                     couponOfficer.ModifiedDate = DateTime.Now;
-                    if ((couponOfficer.UserAssignedId ?? 0) == currentOffficerId) approvedBy = currentOffficerId;
+                    if ((couponOfficer.UserAssignedId ?? 0) == currentOffficerId) isApproved = true;
+                    if (isApproved) { couponOfficer.TotalAmountUses = (couponOfficer.TotalAmountUses ?? 0) + discountAmount; }
                 }
                 else
                 {
+                    isApproved = true;
                     var userId = lading.SenderId;
                     var couponCustomer = _context.CouponCustomers.FirstOrDefault(o => o.CouponId == coupon.Id && o.State == 0 && (userId == o.UserAssignedId.Value || userId == o.UserId));
                     if (couponCustomer != null)
@@ -170,8 +172,8 @@ namespace NascoWebAPI.Data
                     ModifiedDate = DateTime.Now,
                     CreatedBy = currentOffficerId,
                     ModifiedBy = currentOffficerId,
-                    Status = (int)StatusCouponLading.WaitingForApproval,
-                    IsApproved = false,
+                    Status = !isApproved ? (int)StatusCouponLading.WaitingForApproval : (int)StatusCouponLading.Approved,
+                    IsApproved = isApproved,
                     UnapprovedTimes = 0
                 };
                 _context.CouponLadings.Add(couponLading);
