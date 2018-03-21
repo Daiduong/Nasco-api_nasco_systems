@@ -1,16 +1,25 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Configuration;
 using NascoWebAPI.Data;
 
 namespace NascoWebAPI
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
+        public static IConfiguration Configuration { get; set; }
+        public ApplicationDbContext() { }
+        //public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        //    : base(options)
+        //{
 
+        //}
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(Helper.ConnectionHelper.CONNECTION_STRING);
+            }
         }
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -79,7 +88,10 @@ namespace NascoWebAPI
         public virtual DbSet<CouponOfficer> CouponOfficers { get; set; }
         public virtual DbSet<CouponLading> CouponLadings { get; set; }
         public virtual DbSet<DiscountType> DiscountTypes { get; set; }
+        public virtual DbSet<PackageOfLading> PackageOfLadings { get; set; }
+        public virtual DbSet<PackageOfLadingHistory> PackageOfLadingHistories { get; set; }
         #region View
+        public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }
         public virtual DbSet<BB_View_Calculator> BB_View_Calculators { get; set; }
         public virtual DbSet<BB_View_Lading_Service> BB_View_Lading_Services { get; set; }
         public virtual DbSet<BB_View_Transport_Service_Joined> BB_View_Transport_Service_Joineds { get; set; }
@@ -88,6 +100,7 @@ namespace NascoWebAPI
         public virtual DbSet<LadingTempView> LadingTempViews { get; set; }
 
 
-        #endregion 
+
+        #endregion
     }
 }
