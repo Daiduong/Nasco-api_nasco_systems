@@ -53,11 +53,11 @@ namespace NascoWebAPI
         {
             // Add framework services.
             services.AddApplicationInsightsTelemetry(Configuration);
-            var connectionString = $"NascoWebAPIConnection";
+           
             services.Configure<FormOptions>(options => options.BufferBody = true);
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString(connectionString)));
-
+                options.UseSqlServer(Configuration.GetConnectionString("NascoWebAPIConnection")));
+            Helper.ConnectionHelper.CONNECTION_STRING = Configuration.GetConnectionString("NascoWebAPIConnection");
             services.AddIdentity<ApplicationUser, IdentityRole>()
                .AddEntityFrameworkStores<ApplicationDbContext>();
 

@@ -13,19 +13,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NascoWebAPI.Data
 {
-    [Table("BK_internalHistory")]
-    public partial class BKInternalHistory
+    [Table("PackageOfLadingHistory")]
+    public partial class PackageOfLadingHistory
     {
         public int Id { get; set; }
-        public Nullable<int> BK_internalId { get; set; }
-        public Nullable<int> CreatedBy { get; set; }
         public Nullable<System.DateTime> CreatedDate { get; set; }
-        public Nullable<int> Status { get; set; }
-        public string LadingIds { get; set; }
-        public Nullable<int> TotalLading { get; set; }
-        public Nullable<double> TotalWeight { get; set; }
+        public Nullable<int> CreatedBy { get; set; }
+        public Nullable<System.DateTime> ModifiedDate { get; set; }
+        public Nullable<int> State { get; set; }
+        public Nullable<int> PackageOfLadingId { get; set; }
+        public Nullable<int> StatusId { get; set; }
+        public Nullable<int> POCreated { get; set; }
         public string Note { get; set; }
-        public string PackageOfLadingIds { get; set; }
-        public int? TotalNumber { get; set; }
+        public Nullable<int> ModifiedBy { get; set; }
     }
 }

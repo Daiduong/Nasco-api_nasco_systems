@@ -107,11 +107,18 @@ namespace NascoWebAPI.Data
         public int? BKDeliveryId { get; set; }
         public int? BKInternalId { get; set; }
         public int? FlightId { get; set; }
+        public double? DBNDPrice { get; set; }
+        public string DBNDFrom { get; set; }
+        public string DBNDTo { get; set; }
+        public string DBNDNote { get; set; }
         public Nullable<int> PostOfficeKeepAmount { get; set; }
         public Nullable<int> PostOfficeKeepCOD { get; set; }
         public Nullable<double> DiscountAmount { get; set; }
         public Nullable<bool> Locked { get; set; }
         public Nullable<int> CouponLadingId { get; set; }
+        public bool? IsPartStatus { get; set; }
+        public bool? IsConfirmByLading { get; set; }
+
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }
         [ForeignKey("SenderId"), DatabaseGenerated(DatabaseGeneratedOption.None)]

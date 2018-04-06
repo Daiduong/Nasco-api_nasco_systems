@@ -106,6 +106,10 @@ namespace NascoWebAPI.Data
         public Nullable<int> PriceListId { get; set; }
         public Nullable<double> DiscountAmount { get; set; }
         public Nullable<int> CouponId { get; set; }
+        public double? DBNDPrice { get; set; }
+        public string DBNDFrom { get; set; }
+        public string DBNDTo { get; set; }
+        public string DBNDNote { get; set; }
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }
         [ForeignKey("SenderId"), DatabaseGenerated(DatabaseGeneratedOption.None)]

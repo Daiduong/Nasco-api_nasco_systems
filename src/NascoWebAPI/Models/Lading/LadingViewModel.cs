@@ -125,6 +125,11 @@ namespace NascoWebAPI.Models
         public string NoteTypePack { get; set; }
         public string CouponCode { get; set; }
         public double DiscountAmount { get; set; }
+        public double? DBNDPrice { get; set; }
+        public string DBNDFrom { get; set; }
+        public string DBNDTo { get; set; }
+        public string DBNDNote { get; set; }
+        public bool IsMultiplePackage { get; set; }
     }
     public class NumberDIM
     {

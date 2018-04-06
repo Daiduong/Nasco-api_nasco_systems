@@ -85,6 +85,12 @@ namespace NascoWebAPI.Data
                             lading.PackPrice = model.PackPrice;
                             totalDVGT += lading.PackPrice ?? 0;
                         }
+                        else if (other.ServiceCode.ToUpper() == "DBND")//CUOC PHI DONG GOI
+                        {
+                            //lading.PackPrice = Convert.ToDouble(unitOfWork.ServiceValueAddedCustomerRepository._GetPriceDGHH((int)model.PackId, (double)model.Length, (double)model.Width, (double)model.Height)?.Packing_Cartons ?? 0);
+                            lading.DBNDPrice = model.DBNDPrice;
+                            totalDVGT += lading.DBNDPrice ?? 0;
+                        }
                         else
                         {
                             double priceDVGT = 0, priceDVGTAfter = 0;

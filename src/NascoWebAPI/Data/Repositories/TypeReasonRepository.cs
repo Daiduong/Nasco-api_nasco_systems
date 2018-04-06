@@ -1,4 +1,5 @@
-﻿using NascoWebAPI.Helper;
+﻿using Microsoft.EntityFrameworkCore;
+using NascoWebAPI.Helper;
 using NascoWebAPI.Helper.Common;
 using System;
 using System.Collections.Generic;
@@ -92,30 +93,106 @@ namespace NascoWebAPI.Data
 
         public async Task<PostOffice> GetDistanceMinByLocation(int cityId, double lat, double lng, int? type)
         {
-            var postOfficeId = (_context.Locations.SingleOrDefault(o => o.LocationId == cityId) ?? new Location()).PostOfficeId ?? 0;
+            var postOfficeId = (await _context.Locations.SingleOrDefaultAsync(o => o.LocationId == cityId) ?? new Location()).PostOfficeId ?? 0;
             //var postOfficeId = (unitOfWork.AreaRepository._GetAreaById((areaId ?? 0)) ?? new Area()).CenterId ?? 0;
             var postOffice = this.GetSingle(o => o.State == 0 && o.PostOfficeID == postOfficeId);
-            if (postOffice != null && !postOffice.ParentId.HasValue)
+            if (postOffice != null && !(postOffice.IsPartner ?? false) && ((postOffice.IsFrom ?? false) || (postOffice.IsTo ?? false)))
             {
-                var postOffices = await this.GetListPostOfficeInCenter(postOfficeId);
-                if (type.HasValue)
-                {
-                    switch (type.Value)
-                    {
-                        case 1:
-                            postOffices = postOffices.Where(o => (o.IsFrom ?? false)).ToList();
-                            break;
-                        case 2:
-                            postOffices = postOffices.Where(o => (o.IsTo ?? false)).ToList();
-                            break;
-                    }
-                }
+                var postOffices = this.GetListFromCenter(postOfficeId, type);
                 if (postOffices.Count() == 1)
                     return postOffices.First();
                 return this.GetByDistanceMin(postOffices, lat, lng);
             }
             return postOffice;
 
+        }
+        public IEnumerable<PostOffice> GetByMethod(IEnumerable<PostOffice> postOffices, int? postOfficeMethodId = null)
+        {
+            if (postOfficeMethodId.HasValue && postOffices.Count() > 0)
+            {
+                switch (postOfficeMethodId.Value)
+                {
+                    case (int)PostOfficeMethod.FROM:
+                        postOffices = postOffices.Where(x => (x.IsFrom ?? false));
+                        break;
+                    case (int)PostOfficeMethod.TO:
+                        postOffices = postOffices.Where(x => (x.IsTo ?? false));
+                        break;
+                    case (int)PostOfficeMethod.PARTNER:
+                        postOffices = postOffices.Where(x => (x.IsPartner ?? false));
+                        break;
+                }
+            }
+            return postOffices;
+        }
+        public IEnumerable<PostOffice> GetListChild(PostOffice parent)
+        {
+            var children = parent.Recurse(x => _context.PostOffices.Where(y => x.PostOfficeID == y.ParentId && y.State == 0)); ;
+            this.Get(o => (o.SetsId == parent.PostOfficeID || o.PostOfficeID == parent.SetsId) && o.State == 0 && parent.PostOfficeID != o.PostOfficeID)
+                .ToList()
+                .ForEach(o =>
+                {
+                    children = children.Union(o.Recurse(x => _context.PostOffices.Where(y => x.PostOfficeID == y.ParentId && y.State == 0)));
+                });
+            return children;
+        }
+        public IEnumerable<PostOffice> GetListChild(int parentId)
+        {
+            var parent = _context.PostOffices.FirstOrDefault(x => x.PostOfficeID == parentId && x.State == 0);
+            if (parent != null) return this.GetListChild(parent);
+            return Enumerable.Empty<PostOffice>();
+        }
+        public IEnumerable<PostOffice> GetListChild(int parentId, int? postOfficeMethodId = null)
+        {
+            var postOffices = this.GetListChild(parentId);
+            return this.GetByMethod(postOffices, postOfficeMethodId);
+        }
+        public IEnumerable<PostOffice> GetListParent(PostOffice child)
+        {
+            return child.Recurse(x => _context.PostOffices.Where(y => x.ParentId == y.PostOfficeID && y.State == 0));
+        }
+        public IEnumerable<PostOffice> GetListParent(int childId)
+        {
+            var child = _context.PostOffices.FirstOrDefault(x => x.PostOfficeID == childId && x.State == 0);
+            if (child != null) return this.GetListParent(child);
+            return Enumerable.Empty<PostOffice>();
+        }
+        public IEnumerable<PostOffice> GetListParent(int childId, int? postOfficeMethodId = null)
+        {
+            var postOffices = this.GetListParent(childId);
+            return this.GetByMethod(postOffices, postOfficeMethodId);
+        }
+        public IEnumerable<PostOffice> GetListFromLevel(int id, int? level = 0)
+        {
+            var leaf = _context.PostOffices.FirstOrDefault(x => x.PostOfficeID == id && x.State == 0);
+            if (leaf != null && leaf.Level != ((level ?? leaf.Level) ?? 0))
+            {
+                leaf = this.GetListParent(leaf).FirstOrDefault(x => x.Level == level);
+            }
+            return leaf != null ? this.GetListChild(leaf) : Enumerable.Empty<PostOffice>();
+        }
+        public IEnumerable<PostOffice> GetListFromLevel(int id, int? level = 0, int? postOfficeTypeId = null)
+        {
+            return this.GetByMethod(GetListFromLevel(id, level), postOfficeTypeId);
+        }
+        public IEnumerable<PostOffice> GetListFromBranch(int id, int? postOfficeTypeId = null)
+        {
+            return this.GetListFromLevel(id, (int)PostOfficeType.BRANCH - 1, postOfficeTypeId);
+        }
+        public IEnumerable<PostOffice> GetListFromCenter(int id, int? postOfficeTypeId = null)
+        {
+            return this.GetListFromLevel(id, (int)PostOfficeType.HUB - 1, postOfficeTypeId);
+        }
+        public PostOffice GetBranch(int id)
+        {
+            var po = _context.PostOffices.FirstOrDefault(o => o.PostOfficeID == id);
+            if (po != null && po.PostOfficeTypeId != (int)PostOfficeType.HEADQUARTER)
+            {
+                if (po.PostOfficeTypeId == (int)PostOfficeType.BRANCH)
+                    return po;
+                return this.GetListParent(po).FirstOrDefault(o => o.PostOfficeTypeId == (int)PostOfficeType.BRANCH);
+            }
+            return null;
         }
     }
 

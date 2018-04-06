@@ -29,5 +29,10 @@ namespace NascoWebAPI.Data
         public int? POCreate { get; set; }
         public int? PostOfficeId { get; set; }
         public int? PODeliveryId { get; set; }
+        public string PackageOfLadingIds { get; set; }
+        public Nullable<int> TotalNumberDelivery { get; set; }
+        public Nullable<int> TotalNumber { get; set; }
+        public Nullable<double> TotalWeight { get; set; }
+        public Nullable<double> TotalWeightToPrice { get; set; }
     }
 }

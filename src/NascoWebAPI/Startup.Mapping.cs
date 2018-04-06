@@ -42,7 +42,7 @@ namespace NascoWebAPI
             services.AddScoped<IBKInternalHistoryRepository, BKInternalHistoryRepository>();
             services.AddScoped<IFlightRepository, FlightRepository>();
             services.AddScoped<ICouponRepository, CouponRepository>();
-
+            services.AddScoped<IPackageOfLadingRepository, PackageOfLadingRepository>();
         }
     }
 }

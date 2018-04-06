@@ -309,5 +309,33 @@ namespace NascoWebAPI.Helper.Common
         Responded,
         Accepted
     }
-
+    public enum StatusLadingTemp
+    {
+        Created = 1,//Mới tạo
+        WaitingPickUp , //Đang chờ lấy hàng
+        PickingUp, //Đang  lấy hàng,
+        PickedUp, //Đã lấy hàng
+        InStock , //Nhập kho
+        Cancel, //Hủy
+    }
+    public enum PostOfficeMethod
+    {
+        FROM = 1,
+        TO,
+        PARTNER
+    }
+    public enum PostOfficeType
+    {
+        HEADQUARTER = 1,
+        BRANCH,
+        HUB,
+        STATION
+    }
+    public enum TransportType
+    {
+        MOTORBIKE = 1,
+        TRUCK,
+        PLANE,
+        PARTNER
+    }
 }

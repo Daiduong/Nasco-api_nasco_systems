@@ -44,6 +44,17 @@ namespace NascoWebAPI.Data
         Task<bool> SameCenter(int postOfficeId1, int postOfficeId2);
         PostOffice GetByDistanceMin(IEnumerable<PostOffice> postOffices, double latDistance, double lngDistance);
         Task<PostOffice> GetDistanceMinByLocation(int cityId, double lat, double lng, int? type);
+        IEnumerable<PostOffice> GetListChild(int parentId);
+        IEnumerable<PostOffice> GetListChild(PostOffice parent);
+        IEnumerable<PostOffice> GetListChild(int parentId, int? postOfficeMethodId = null);
+        IEnumerable<PostOffice> GetListParent(PostOffice child);
+        IEnumerable<PostOffice> GetListParent(int childId);
+        IEnumerable<PostOffice> GetListParent(int childId, int? postOfficeMethodId = null);
+        IEnumerable<PostOffice> GetListFromLevel(int id, int? level = 0);
+        IEnumerable<PostOffice> GetListFromLevel(int id, int? level = 0, int? postOfficeTypeId = null);
+        IEnumerable<PostOffice> GetListFromBranch(int id, int? postOfficeTypeId = null);
+        IEnumerable<PostOffice> GetListFromCenter(int id, int? postOfficeTypeId = null);
+        PostOffice GetBranch(int id);
     }
     public interface ITypeReasonRepository : IRepository<TypeReason> { }
     public interface ICustomerRepository : IRepository<Customer>
@@ -111,5 +122,13 @@ namespace NascoWebAPI.Data
     {
         ResultModel<object> GetDiscountAmount(LadingViewModel lading);
         ResultModel<Coupon> Discount(string code, int currentOffficerId, int ladingId, double discountAmount);
+    }
+    public interface IPackageOfLadingRepository : IRepository<PackageOfLading>
+    {
+        Task Insert(List<NumberDIM> model, int ladingId, int currentUserId, int currentPOId);
+        Task Update(int currentUserId, int currentPOId, int packageOfLadingId, int statusId, int? packageId = null, int? bkInternalId = null, int? bkDeliveryId = null, string note = "");
+        Task Update(int currentUserId, int currentPOId, PackageOfLading packageOfLading, string note = "");
+        Task UpdateIsPartStatusLading(int ladingId);
+        Task InsertHistory(int currentUserId, int currentPOId, int packageOfLadingId, int? statusId, string note = "");
     }
 }

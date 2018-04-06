@@ -45,5 +45,10 @@ namespace NascoWebAPI.Data
         public Nullable<int> JobConfirmId { get; set; }
         public Nullable<int> OfficerConfirmId { get; set; }
         public Nullable<bool> IsAirportToConfirm { get; set; }
+        public string PackageOfLadingIds { get; set; }
+        public Nullable<int> TotalNumberReceived { get; set; }
+        public Nullable<int> TotalLadingRecipientAirport { get; set; }
+        public string LadingConfirmIds { get; set; }
+        public Nullable<int> TotalLadingConfirm { get; set; }
     }
 }

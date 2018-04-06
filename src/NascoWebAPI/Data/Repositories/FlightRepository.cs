@@ -104,7 +104,7 @@ namespace NascoWebAPI.Data
                                     var bkinternals = _context.BKInternals.Where(o => o.FlightId == flight.Id).ToList();
                                     bkinternals.ForEach(bkinternal =>
                                     {
-                                        var ladings = _context.Ladings.Where(o => o.BKInternalId == bkinternal.ID_BK_internal).ToList();
+                                        var ladings = _context.Ladings.Where(o => o.BKInternalId == bkinternal.ID_BK_internal && o.State == 0).ToList();
 
                                         ladings.ForEach(lading =>
                                         {
@@ -173,7 +173,7 @@ namespace NascoWebAPI.Data
                                 var bkinternals = _context.BKInternals.Where(o => o.FlightId == flight.Id).ToList();
                                 bkinternals.ForEach(bkinternal =>
                                 {
-                                    var ladings = _context.Ladings.Where(o => o.BKInternalId == bkinternal.ID_BK_internal).ToList();
+                                    var ladings = _context.Ladings.Where(o => o.BKInternalId == bkinternal.ID_BK_internal && o.State ==0).ToList();
                                     ladings.ForEach(lading =>
                                     {
                                         if (lading.Status != ladingStatus)

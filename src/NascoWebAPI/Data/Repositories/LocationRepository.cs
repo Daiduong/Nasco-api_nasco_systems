@@ -17,7 +17,7 @@ namespace NascoWebAPI.Data
         public async Task<IEnumerable<Location>> GetCities()
         => await this.GetAsync(o => o.State == (int)StatusSystem.Enable && o.Type == (int)LocationType.City);
         public async Task<IEnumerable<Location>> GetDistrictsByCity( int cityId)
-        => await this.GetAsync(o => o.ParentId == cityId && o.Type == (int)LocationType.District);
+        => await this.GetAsync(o => o.State == (int)StatusSystem.Enable && o.ParentId == cityId && o.Type == (int)LocationType.District);
         //Hàm Kiểm tra Location Trùng khớp nhất
         public int GetIdBestMatches(IEnumerable<Location> locations, string locationName)
         {

@@ -99,7 +99,7 @@ namespace NascoWebAPI.Data
                         var typeReson = _iTypeReasonRepository.GetSingle(obj => typeReasonID.Value == obj.TypeReasonID);
                         if (typeReson != null)
                         {
-                            entity.Noted = typeReson.TypeReasonName;
+                            //entity.Noted = typeReson.TypeReasonName;
                             note = typeReson.TypeReasonName;
                         }
                     }
@@ -116,7 +116,7 @@ namespace NascoWebAPI.Data
                     entity.AmountKeepBy = currentUser.OfficerID;
                     entity.PostOfficeKeepAmount = currentUser.PostOfficeId;
                 }
-                if (entity.Status.Value == (int)StatusLading.DaChuyenHoan)
+                if (entity.Status.Value == (int)StatusLading.HoanGoc)
                 {
                     entity.Return = true;
                 }

@@ -29,7 +29,23 @@ namespace NascoWebAPI.Helper
         {
             return Enum.GetValues(typeof(T)).Cast<T>();
         }
+        public static IEnumerable<T> Recurse<T>
+            (
+                this T root,
+                Func<T, IEnumerable<T>> findChildren
+            )
+            where T : class
+        {
+            yield return root;
 
+            foreach (var child in
+                findChildren(root)
+                    .SelectMany(node => Recurse(node, findChildren))
+                    .TakeWhile(child => child != null))
+            {
+                yield return child;
+            }
+        }
 
     }
 }
