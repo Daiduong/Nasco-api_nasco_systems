@@ -21,12 +21,12 @@ namespace NascoWebAPI.Data
         {
             return this.GetFirst(o => o.State == 0 && o.Code != null && o.Code.ToUpper() == code.ToUpper());
         }
-        public ResultModel<object> GetDiscountAmount(LadingViewModel lading)
+        public ResultModel<object> GetDiscountAmount(string couponCode, ComputedPriceModel computedPriceModel, int? customerId)
         {
             var result = new ResultModel<object>();
             try
             {
-                var coupon = this.GetByCode(lading.CouponCode.Trim());
+                var coupon = this.GetByCode(couponCode.Trim());
                 if (coupon == null)
                 {
                     result.Message = "Không tìm thấy thông tin mã giảm giá";
@@ -56,13 +56,13 @@ namespace NascoWebAPI.Data
                     }
                     if (!(promotion.IsInternal ?? true))
                     {
-                        if (!(promotion.IsPublic ?? false) && _context.CouponCustomers.Any(o => o.CouponId == coupon.Id && o.UserAssignedId.Value != (lading.SenderId ?? 0)))
+                        if (!(promotion.IsPublic ?? false) && _context.CouponCustomers.Any(o => o.CouponId == coupon.Id && o.UserAssignedId.Value != (customerId ?? 0)))
                         {
                             return result.Init(message: "Chỉ áp dụng cho những khách hàng nhận được mã");
                         }
-                        if (usesPerUser > 0 && lading.SenderId.HasValue)
+                        if (usesPerUser > 0 && customerId.HasValue)
                         {
-                            var couponCustomer = _context.CouponCustomers.FirstOrDefault(o => o.CouponId == coupon.Id && o.State == 0 && lading.SenderId.Value == o.UserId.Value);
+                            var couponCustomer = _context.CouponCustomers.FirstOrDefault(o => o.CouponId == coupon.Id && o.State == 0 && customerId.Value == o.UserId.Value);
                             if (couponCustomer != null && (couponCustomer.NumberUses ?? 0) == usesPerUser)
                             {
                                 return result.Init(message: "Đã vượt quá số lần sử dụng cho một khách hàng");
@@ -85,12 +85,12 @@ namespace NascoWebAPI.Data
                         switch (discountType.Code)
                         {
                             case "AP":
-                                discountAmount *= (lading.Amount) / 100;
+                                discountAmount *= computedPriceModel.TotalCharge / 100;
                                 break;
                             case "AF":
                                 break;
                             case "PP":
-                                discountAmount *= ((lading.PPXDPercent ?? 0) + (lading.PriceMain ?? 0)) / 100;
+                                discountAmount *= (computedPriceModel.ChargeMain + computedPriceModel.ChargeFuel) / 100;
                                 break;
                         }
                     }

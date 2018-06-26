@@ -94,12 +94,15 @@ namespace NascoWebAPI.Data
                 entity.ModifiedDate = DateTime.Now;
                 if (typeReasonID.HasValue)
                 {
-                    if (string.IsNullOrEmpty(entity.Noted))
+                    var typeReson = _iTypeReasonRepository.GetSingle(obj => typeReasonID.Value == obj.TypeReasonID);
+                    if (typeReson != null)
                     {
-                        var typeReson = _iTypeReasonRepository.GetSingle(obj => typeReasonID.Value == obj.TypeReasonID);
-                        if (typeReson != null)
+                        if (typeReson.IsText)
                         {
-                            //entity.Noted = typeReson.TypeReasonName;
+                            note = typeReson.TypeReasonName + ": " + note;
+                        }
+                        else
+                        {
                             note = typeReson.TypeReasonName;
                         }
                     }
@@ -120,6 +123,16 @@ namespace NascoWebAPI.Data
                 {
                     entity.Return = true;
                 }
+                if ((entity.Status.Value == (int)StatusLading.ThanhCong
+                    || entity.Status.Value == (int)StatusLading.PhatKhongTC) && !(entity.Return ?? false))
+                {
+                    entity.TimesDelivery = (entity.TimesDelivery ?? 0) + 1;
+                }
+                else if ((entity.Status.Value == (int)StatusLading.DaChuyenHoan
+                || entity.Status.Value == (int)StatusLading.PhatKhongTC) && (entity.Return ?? false))
+                {
+                    entity.TimesDelivery = (entity.TimesDeliveryReturn ?? 0) + 1;
+                }
                 var statusDelivery = new int[] { (int)StatusLading.DaChuyenHoan, (int)StatusLading.ThanhCong };
                 if (entity.BKDeliveryId.HasValue && entity.Status.HasValue && statusDelivery.Contains(entity.Status.Value))
                 {
@@ -130,6 +143,10 @@ namespace NascoWebAPI.Data
                         if (bkDelivery.TotalLadingDeliveried == bkDelivery.TotalLading)
                         {
                             bkDelivery.Status = 702;
+                        }
+                        else if (bkDelivery.Status == 700)
+                        {
+                            bkDelivery.Status = 701;
                         }
                     }
                 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NascoWebAPI.Helper.Common;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -46,6 +47,49 @@ namespace NascoWebAPI.Helper
                 yield return child;
             }
         }
-
+        public static bool HasProperty(this Type obj, string propertyName)
+        {
+            return obj.GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance) != null;
+        }
+        public static object GetValue(this object obj, string propertyName)
+        {
+            if (!obj.GetType().HasProperty(propertyName))
+            {
+                return 0;
+            }
+            return obj.GetType().GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(obj); ;
+        }
+        public static int GetStatusLadingTemp(int statusOld)
+        {
+            if ((int)StatusLading.ChoLayHang == statusOld)
+            {
+                return (int)StatusLadingTemp.WaitingPickUp;
+            }
+            if ((int)StatusLading.DangLayHang == statusOld)
+            {
+                return (int)StatusLadingTemp.PickingUp;
+            }
+            if ((int)StatusLading.DaLayHang == statusOld)
+            {
+                return (int)StatusLadingTemp.PickedUp;
+            }
+            if ((int)StatusLading.LayHangKhongTC == statusOld)
+            {
+                return (int)StatusLadingTemp.PickedFail;
+            }
+            if ((int)StatusLading.NVKhongNhan == statusOld)
+            {
+                return (int)StatusLadingTemp.RefusePickUp;
+            }
+            if ((int)StatusLading.NhapKho == statusOld)
+            {
+                return (int)StatusLadingTemp.InStock;
+            }
+            if ((int)StatusLading.KHTaoBill == statusOld)
+            {
+                return (int)StatusLadingTemp.Created;
+            }
+            return (int)StatusLadingTemp.Cancel;
+        }
     }
 }

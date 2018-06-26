@@ -71,24 +71,11 @@ namespace NascoWebAPI.Data
             }
             return null;
         }
-        public async Task<IEnumerable<PostOffice>> GetListPostOfficeInCenter(int postOfficeId)
-        {
-            if (_context.PostOffices.Any(o => o.PostOfficeID == postOfficeId))
-            {
-                var po = await this.GetSingleAsync(o => o.PostOfficeID == postOfficeId);
-                var poCenterId = !po.POCenterID.HasValue ? postOfficeId : po.POCenterID;
-                return await this.GetAsync(o => o.State == 0 && (o.POCenterID.Value == poCenterId || o.PostOfficeID == poCenterId));
-            }
-            else
-            {
-                return Enumerable.Empty<PostOffice>();
-            }
-        }
+ 
         public async Task<bool> SameCenter(int postOfficeId1, int postOfficeId2)
         {
-            var postoffices = await this.GetListPostOfficeInCenter(postOfficeId1);
+            var postoffices = this.GetListFromCenter(postOfficeId1);
             return postoffices.Any(o => o.PostOfficeID == postOfficeId2);
-
         }
 
         public async Task<PostOffice> GetDistanceMinByLocation(int cityId, double lat, double lng, int? type)

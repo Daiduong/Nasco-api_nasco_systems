@@ -65,7 +65,7 @@ namespace NascoWebAPI.Helper.Common
         [Description("Đóng gói")]
         DongGoi = 22,
         [Description("Tạo chuyến bay")]
-        TaoChuyenByay = 23,
+        TaoChuyenBay = 23,
         [Description("Xác nhận chuyển bay hợp lệ")]
         XacNhanChuyenBayHopLe = 24,
         [Description("Rời trung tâm bay")]
@@ -309,15 +309,6 @@ namespace NascoWebAPI.Helper.Common
         Responded,
         Accepted
     }
-    public enum StatusLadingTemp
-    {
-        Created = 1,//Mới tạo
-        WaitingPickUp , //Đang chờ lấy hàng
-        PickingUp, //Đang  lấy hàng,
-        PickedUp, //Đã lấy hàng
-        InStock , //Nhập kho
-        Cancel, //Hủy
-    }
     public enum PostOfficeMethod
     {
         FROM = 1,
@@ -338,4 +329,16 @@ namespace NascoWebAPI.Helper.Common
         PLANE,
         PARTNER
     }
+    public enum StatusLadingTemp
+    {
+        Created = 1,//Mới tạo
+        WaitingPickUp, //Đang chờ lấy hàng
+        PickingUp, //Đang  lấy hàng,
+        RefusePickUp,//NV từ chối lấy hàng
+        PickedUp, //Đã lấy hàng
+        PickedFail, //Lấy hàng không thành công
+        InStock, //Nhập kho
+        Cancel, //Hủy
+    }
+   
 }

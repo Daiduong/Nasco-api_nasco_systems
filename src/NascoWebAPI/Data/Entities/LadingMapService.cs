@@ -11,7 +11,9 @@ namespace NascoWebAPI.Data
     public partial class LadingMapService
     {
         public int Id { get; set; }
-        public Nullable<long> LadingId { get; set; }
-        public Nullable<int> ServiceId { get; set; }
+        public long? LadingId { get; set; }
+        public int? ServiceId { get; set; }
+        public double? TotalPrice { get; set; }
+        public int? State { get; set; }
     }
 }

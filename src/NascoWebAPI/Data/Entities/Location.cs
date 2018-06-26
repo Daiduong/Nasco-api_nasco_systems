@@ -31,6 +31,8 @@ namespace NascoWebAPI.Data
         public string Code_Local { get; set; }
         public Nullable<int> Arrangement { get; set; }
         public Nullable<int> PostOfficeId { get; set; }
+        public string ShortName { get; set; }
+        public int? DistrictTypeId { get; set; }
         //[NotMapped]
         //public virtual ICollection<Lading> LadingRecipients { get; set; }
         //[NotMapped]

@@ -30,13 +30,13 @@ namespace NascoWebAPI.Data
             Menu menu1 = new Menu();
             menu1.Id = 1;
             menu1.MenuName = "Yêu cầu lấy hàng";
-            menu1.Badges = _context.LadingTemps.Count(o => o.OfficerPickup.Value == officerId && o.Status.Value == (int)StatusLading.ChoLayHang);
+            menu1.Badges = _context.LadingTemps.Count(o => o.OfficerPickup.Value == officerId && o.Status.Value == (int)StatusLadingTemp.WaitingPickUp);
             listMenu.Add(menu1);
 
             Menu menu2 = new Menu();
             menu2.Id = 2;
             menu2.MenuName = "Lấy hàng";
-            menu2.Badges = _context.LadingTemps.Count(o => o.OfficerPickup.Value == officerId && o.Status.Value == (int)StatusLading.DangLayHang);
+            menu2.Badges = _context.LadingTemps.Count(o => o.OfficerPickup.Value == officerId && o.Status.Value == (int)StatusLadingTemp.PickingUp);
             listMenu.Add(menu2);
 
             Menu menu3 = new Menu();

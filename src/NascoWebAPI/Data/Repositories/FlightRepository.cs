@@ -92,7 +92,7 @@ namespace NascoWebAPI.Data
                                 flight.MAWB.WeightConfirm = model.WeightConfirm;
                                 flight.MAWB.RealDateTime = model.RealDateTime ?? new DateTime();
                                 flight.FlightStatus = (int)StatusFlight.TakeOff;
-                                var ladingStatus = (int)StatusLading.RoiTrungTamBay;
+                               
                                 var officer = _context.Set<Officer>().Include(o => o.PostOffice).Single(o => o.OfficerID == model.ModifiedBy);
                                 if (officer.PostOffice == null)
                                 {
@@ -100,31 +100,78 @@ namespace NascoWebAPI.Data
                                 }
                                 else
                                 {
-                           
+                                    var currentUserId = officer.OfficerID;
+                                    var currentPOId = officer.PostOfficeId ?? 0;
+                                    var statusUpdate = (int)StatusLading.RoiTrungTamBay;
+                                    var statusRollbacks = new int[] { (int)StatusLading.TaoChuyenBay };
+
                                     var bkinternals = _context.BKInternals.Where(o => o.FlightId == flight.Id).ToList();
                                     bkinternals.ForEach(bkinternal =>
                                     {
-                                        var ladings = _context.Ladings.Where(o => o.BKInternalId == bkinternal.ID_BK_internal && o.State == 0).ToList();
-
-                                        ladings.ForEach(lading =>
+                                        bkinternal.Status = (int)StatusFlight.TakeOff;
+                                        var ladingIds = new int[0];
+                                        var packageOfLadingIds = new int[0];
+                                        if (!string.IsNullOrEmpty(bkinternal.ListLadingId))
                                         {
-                                            if (lading.Status != ladingStatus)
+                                            ladingIds = bkinternal.ListLadingId.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                                        }
+                                        if (!string.IsNullOrEmpty(bkinternal.PackageOfLadingIds))
+                                        {
+                                            packageOfLadingIds = bkinternal.PackageOfLadingIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                                        }
+                                        #region Kiện
+                                        Parallel.ForEach(packageOfLadingIds, (_id) =>
+                                        {
+                                            using (var context = new ApplicationDbContext())
                                             {
-                                                lading.Status = ladingStatus;
-                                                LadingHistory ladingHistory = new LadingHistory
+                                                var packageOfLadingRepository = new PackageOfLadingRepository(context);
+                                                var packageOfLading = packageOfLadingRepository.GetFirst(o => _id == o.Id && o.State == 0);
+                                                if (packageOfLading != null)
                                                 {
-                                                    CreatedDate = DateTime.Now,
-                                                    DateTime = model.RealDateTime ?? new DateTime(),
-                                                    LadingId = lading.Id,
-                                                    Location = officer.PostOffice.POName,
-                                                    OfficerId = model.ModifiedBy,
-                                                    PostOfficeId = officer.PostOfficeId,
-                                                    Status = ladingStatus
-                                                };
-                                                _context.LadingHistories.Add(ladingHistory);
+                                                    packageOfLading.StatusId = statusUpdate;
+                                                    packageOfLadingRepository.Update(currentUserId, currentPOId, packageOfLading).Wait();
+                                                }
                                             }
                                         });
-                                        bkinternal.Status = (int)StatusFlight.TakeOff;
+                                        #endregion
+                                        #region Vận đơn
+                                        Parallel.ForEach(ladingIds, (_id) =>
+                                        {
+                                            using (var context = new ApplicationDbContext())
+                                            {
+                                                var ladingRepository = new LadingRepository(context);
+                                                var lading = ladingRepository.GetFirst(o => _id == o.Id && statusRollbacks.Contains(o.Status.Value));
+                                                if (lading != null)
+                                                {
+                                                    lading.Status = statusUpdate;
+                                                    lading.ModifiedBy = currentUserId;
+                                                    lading.ModifiedDate = DateTime.Now;
+                                                    lading.POCurrent = currentPOId;
+                                                    ladingRepository.SaveChanges();
+                                                    LadingHistory ladingHistory = new LadingHistory
+                                                    {
+                                                        CreatedDate = DateTime.Now,
+                                                        DateTime = model.RealDateTime ?? new DateTime(),
+                                                        LadingId = lading.Id,
+                                                        Location = officer.PostOffice.POName,
+                                                        OfficerId = currentUserId,
+                                                        PostOfficeId = currentPOId,
+                                                        Status = statusUpdate
+                                                    };
+                                                    context.LadingHistories.Add(ladingHistory);
+                                                    context.SaveChanges();
+                                                }
+                                            }
+                                        });
+                                        #endregion
+                                        Parallel.ForEach(ladingIds, (_id) => Task.Factory.StartNew(async () =>
+                                        {
+                                            using (var context = new ApplicationDbContext())
+                                            {
+                                                var packageOfLadingRepository = new PackageOfLadingRepository(context);
+                                                await packageOfLadingRepository.UpdateIsPartStatusLading((int)_id);
+                                            }
+                                        }));
                                     });
                                     this.SaveChanges();
                                     result.Error = 0;
@@ -160,7 +207,6 @@ namespace NascoWebAPI.Data
                     {
                         if (flight.FlightStatus == (int)StatusFlight.TakeOff)
                         {
-                            var ladingStatus = (int)StatusLading.DenTrungTamSanBayNhan;
                             var officer = _context.Set<Officer>().Include(o => o.PostOffice).Single(o => o.OfficerID == model.ModifiedBy);
                             if (officer.PostOffice == null)
                             {
@@ -170,29 +216,78 @@ namespace NascoWebAPI.Data
                             {
                                 flight.MAWB.RealDateTime = model.ReceivedRealDateTime ?? new DateTime();
                                 flight.FlightStatus = (int)StatusFlight.Landing;
+                                var currentUserId = officer.OfficerID;
+                                var currentPOId = officer.PostOfficeId ?? 0;
+                                var statusUpdate = (int)StatusLading.DenTrungTamSanBayNhan;
+                                var statusRollbacks = new int[] { (int)StatusLading.RoiTrungTamBay };
+
                                 var bkinternals = _context.BKInternals.Where(o => o.FlightId == flight.Id).ToList();
                                 bkinternals.ForEach(bkinternal =>
                                 {
-                                    var ladings = _context.Ladings.Where(o => o.BKInternalId == bkinternal.ID_BK_internal && o.State ==0).ToList();
-                                    ladings.ForEach(lading =>
+                                    bkinternal.Status = (int)StatusFlight.Landing;
+                                    var ladingIds = new int[0];
+                                    var packageOfLadingIds = new int[0];
+                                    if (!string.IsNullOrEmpty(bkinternal.ListLadingId))
                                     {
-                                        if (lading.Status != ladingStatus)
+                                        ladingIds = bkinternal.ListLadingId.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                                    }
+                                    if (!string.IsNullOrEmpty(bkinternal.PackageOfLadingIds))
+                                    {
+                                        packageOfLadingIds = bkinternal.PackageOfLadingIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                                    }
+                                    #region Kiện
+                                    Parallel.ForEach(packageOfLadingIds, (_id) =>
+                                    {
+                                        using (var context = new ApplicationDbContext())
                                         {
-                                            lading.Status = ladingStatus;
-                                            LadingHistory ladingHistory = new LadingHistory
+                                            var packageOfLadingRepository = new PackageOfLadingRepository(context);
+                                            var packageOfLading = packageOfLadingRepository.GetFirst(o => _id == o.Id && o.State == 0);
+                                            if (packageOfLading != null)
                                             {
-                                                CreatedDate = DateTime.Now,
-                                                DateTime = model.ReceivedRealDateTime ?? new DateTime(),
-                                                LadingId = lading.Id,
-                                                Location = officer.PostOffice.POName,
-                                                OfficerId = model.ModifiedBy,
-                                                PostOfficeId = officer.PostOfficeId,
-                                                Status = ladingStatus
-                                            };
-                                            _context.LadingHistories.Add(ladingHistory);
+                                                packageOfLading.StatusId = statusUpdate;
+                                                packageOfLadingRepository.Update(currentUserId, currentPOId, packageOfLading).Wait();
+                                            }
                                         }
                                     });
-                                    bkinternal.Status = (int)StatusFlight.Landing;
+                                    #endregion
+                                    #region Vận đơn
+                                    Parallel.ForEach(ladingIds, (_id) =>
+                                    {
+                                        using (var context = new ApplicationDbContext())
+                                        {
+                                            var ladingRepository = new LadingRepository(context);
+                                            var lading = ladingRepository.GetFirst(o => _id == o.Id && statusRollbacks.Contains(o.Status.Value));
+                                            if (lading != null)
+                                            {
+                                                lading.Status = statusUpdate;
+                                                lading.ModifiedBy = currentUserId;
+                                                lading.ModifiedDate = DateTime.Now;
+                                                lading.POCurrent = currentPOId;
+                                                ladingRepository.SaveChanges();
+                                                LadingHistory ladingHistory = new LadingHistory
+                                                {
+                                                    CreatedDate = DateTime.Now,
+                                                    DateTime = model.RealDateTime ?? new DateTime(),
+                                                    LadingId = lading.Id,
+                                                    Location = officer.PostOffice.POName,
+                                                    OfficerId = currentUserId,
+                                                    PostOfficeId = currentPOId,
+                                                    Status = statusUpdate
+                                                };
+                                                context.LadingHistories.Add(ladingHistory);
+                                                context.SaveChanges();
+                                            }
+                                        }
+                                    });
+                                    #endregion
+                                    Parallel.ForEach(ladingIds, (_id) => Task.Factory.StartNew(async () =>
+                                    {
+                                        using (var context = new ApplicationDbContext())
+                                        {
+                                            var packageOfLadingRepository = new PackageOfLadingRepository(context);
+                                            await packageOfLadingRepository.UpdateIsPartStatusLading((int)_id);
+                                        }
+                                    }));
                                 });
                                 this.SaveChanges();
                                 result.Error = 0;

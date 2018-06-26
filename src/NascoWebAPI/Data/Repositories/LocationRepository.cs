@@ -18,17 +18,26 @@ namespace NascoWebAPI.Data
         => await this.GetAsync(o => o.State == (int)StatusSystem.Enable && o.Type == (int)LocationType.City);
         public async Task<IEnumerable<Location>> GetDistrictsByCity( int cityId)
         => await this.GetAsync(o => o.State == (int)StatusSystem.Enable && o.ParentId == cityId && o.Type == (int)LocationType.District);
-        //Hàm Kiểm tra Location Trùng khớp nhất
         public int GetIdBestMatches(IEnumerable<Location> locations, string locationName)
         {
-            locationName = locationName.ToAscii().Replace(" ", "");
+            string[] replaces = { " ", "NUOC", "TINH", "THANHPHO", "THUATHIEN", "QUAN", "PHUONG", "XA", "HUYEN", "TP", "TT", "COUNTRY", "CITY", "STATE", "PROVINCE", "DISTRICT", "WARD" };
+            locationName = locationName.ToAscii().ToUpper();
+            locationName = replaces.Aggregate(locationName, (c1, c2) => c1.Replace(c2, ""));
             int index = 0;
             dynamic minDistance = new ExpandoObject();
             minDistance.Cost = 0;
             minDistance.Id = 0;
             foreach (var location in locations)
             {
-                int cost = LevenshteinDistance.Compute(location.Name.ToAscii().Replace(" ", ""), locationName);
+                string shortName = location.ShortName.ToAscii().ToUpper();
+                shortName = replaces.Aggregate(shortName, (c1, c2) => c1.Replace(c2, ""));
+                int cost = LevenshteinDistance.Compute(shortName, locationName);
+                if (cost == 0)
+                {
+                    minDistance.Cost = cost;
+                    minDistance.Id = location.LocationId;
+                    break;
+                }
                 if (index == 0 || minDistance.Cost > cost)
                 {
                     minDistance.Cost = cost;

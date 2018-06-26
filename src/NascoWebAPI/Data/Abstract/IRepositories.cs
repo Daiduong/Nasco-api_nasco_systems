@@ -40,7 +40,6 @@ namespace NascoWebAPI.Data
     {
         Task<PostOffice> GetByOfficerId(int officeId);
         Task<IEnumerable<PostOffice>> GetByRootPO(int postOfficeId);
-        Task<IEnumerable<PostOffice>> GetListPostOfficeInCenter(int postOfficeId);
         Task<bool> SameCenter(int postOfficeId1, int postOfficeId2);
         PostOffice GetByDistanceMin(IEnumerable<PostOffice> postOffices, double latDistance, double lngDistance);
         Task<PostOffice> GetDistanceMinByLocation(int cityId, double lat, double lng, int? type);
@@ -88,7 +87,7 @@ namespace NascoWebAPI.Data
     }
     public interface IPriceRepository : IRepository<Price>
     {
-        Task<CalculatePriceModel> CalculatePrice(LadingViewModel model);
+        Task<ResultModel<ComputedPriceModel>> Computed(LadingViewModel lading);
         Dictionary<int, double> GetListPrice(double weight, int customerId = 0, int state_from = 0, int state_to = 0, int receive_delivery = 0);
         double GetPrice(double weight, int serviceId = 0, int priceListId = 0, int state_from = 0, int state_to = 0, int receive_delivery = 0);
     }
@@ -98,7 +97,10 @@ namespace NascoWebAPI.Data
         IEnumerable<PriceList> GetListPriceListByCustomer(int? customerId = null, bool union = true);
     }
     public interface ITypeOfPackRepository : IRepository<TypeOfPack> { }
-    public interface ILadingMapPriceRepository : IRepository<LadingMapService> { }
+    public interface ILadingMapServiceRepository : IRepository<LadingMapService>
+    {
+        Task AddOrEdit(int ladingId, List<ServiceOtherModel> models);
+    }
     public interface IDeliveryReceiveRepository : IRepository<DeliveryReceive> { }
     public interface ITypePackRepository : IRepository<TypePack> { }
     public interface ILadingTempRepository : IRepository<LadingTemp> { }
@@ -120,7 +122,7 @@ namespace NascoWebAPI.Data
     }
     public interface ICouponRepository : IRepository<Coupon>
     {
-        ResultModel<object> GetDiscountAmount(LadingViewModel lading);
+        ResultModel<object> GetDiscountAmount(string couponCode, ComputedPriceModel computedPriceModel, int? customerId);
         ResultModel<Coupon> Discount(string code, int currentOffficerId, int ladingId, double discountAmount);
     }
     public interface IPackageOfLadingRepository : IRepository<PackageOfLading>

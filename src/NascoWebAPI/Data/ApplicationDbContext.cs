@@ -90,6 +90,13 @@ namespace NascoWebAPI
         public virtual DbSet<DiscountType> DiscountTypes { get; set; }
         public virtual DbSet<PackageOfLading> PackageOfLadings { get; set; }
         public virtual DbSet<PackageOfLadingHistory> PackageOfLadingHistories { get; set; }
+        public virtual DbSet<ServiceOtherFormula> ServiceOtherFormulas { get; set; }
+        public virtual DbSet<PriceDetailCustomer> PriceDetailCustomers { get; set; }
+        public virtual DbSet<DistrictTypeMapping> DistrictTypeMappings { get; set; }
+        public virtual DbSet<PriceDetailDistrictTypeAddOn> PriceDetailDistrictTypeAddOns { get; set; }
+
+
+
         #region View
         public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }
         public virtual DbSet<BB_View_Calculator> BB_View_Calculators { get; set; }

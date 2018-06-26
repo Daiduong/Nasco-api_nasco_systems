@@ -1,4 +1,6 @@
-﻿using NascoWebAPI.Helper.Common;
+﻿using Microsoft.EntityFrameworkCore;
+using NascoWebAPI.Helper;
+using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;
@@ -14,201 +16,6 @@ namespace NascoWebAPI.Data
         {
 
         }
-        public async Task<CalculatePriceModel> CalculatePrice(LadingViewModel model)
-        {
-            try
-            {
-                var message = "";
-                var lading = new Lading() { };
-                lading.SenderId = model.SenderId;
-                lading.Insured = model.Insured;
-                lading.COD = model.COD;
-                lading.Number = model.Number;
-                #region Giá
-                var locationRepository = new LocationRepository(_context);
-                var postOfficeRepository = new PostOfficeRepository(_context);
-                var location = await locationRepository.GetFirstAsync(o => o.LocationId == int.Parse(model.CitySendId.ToString()));
-                var postOffice = await postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == (int)location.PostOfficeId);
-                lading.InsuredPercent = model.InsuredPercent;
-                lading.KDNumber = model.KDNumber;
-                PriceList priceList;
-                if ((model.PriceListId ?? 0) > 0 && _context.PriceLists.Any(r => r.PriceListID == model.PriceListId.Value))
-                {
-                    priceList = _context.PriceLists.Single(r => r.PriceListID == model.PriceListId.Value);
-                }
-                else
-                {
-                    priceList = _context.PriceLists.FirstOrDefault(r => (r.IsApply ?? false));
-                }
-                double weightD = 0;
-                weightD = model.Weight ?? 0;
-                if (model.Weight < model.Mass) weightD = model.Mass ?? 0;
-                //cu?c chính
-                if ((priceList.PriceListTypeId ?? 0) == 2)
-                {
-                    if (model.KDNumber.HasValue && model.Insured.HasValue && model.KDNumber.Value > 0 && model.Insured.Value > 0
-                        && model.RDFrom.HasValue && model.StructureID.HasValue)
-                    {
-                        lading.PriceMain = this.GetPriceHightValue(model.KDNumber ?? 0, model.Insured ?? 0, model.RDFrom ?? 0, model.StructureID ?? 0);
-                    }
-                }
-                else
-                {
-                    if (!(model.IsPriceMain ?? false))
-                    {
-                        lading.PriceMain = this.GetPrice(weightD, model.ServiceId ?? 0, priceList.PriceListID, model.CitySendId.Value, model.CityRecipientId ?? 0, model.RDFrom ?? 0);
-                    }
-                    else
-                    {
-                        lading.PriceMain = model.PriceMain;
-                    }
-                }
-
-                if ((model.IsGlobal ?? false))
-                {
-                    lading.PPXDPercent = (lading.PriceMain * (priceList.PriceListFuelInternal ?? 0)) / 100;
-                }
-                else
-                {
-                    lading.PPXDPercent = (lading.PriceMain * (priceList.PriceListFuel ?? 0)) / 100;
-                }
-                //dich vụ gia tăng
-                double totalDVGT = 0;
-                if (model.AnotherServiceId != null)
-                {
-                    foreach (var otherId in model.AnotherServiceIds)
-                    {
-                        var otherRepository = new Repository<BB_View_Lading_Service>(_context);
-                        var other = await otherRepository.GetFirstAsync(o => o.ServiceId == otherId);
-                        if (other.ServiceCode.ToUpper() == "DGHH")//CUOC PHI DONG GOI
-                        {
-                            lading.PackPrice = model.PackPrice;
-                            totalDVGT += lading.PackPrice ?? 0;
-                        }
-                        else if (other.ServiceCode.ToUpper() == "DBND")//CUOC PHI DONG GOI
-                        {
-                            //lading.PackPrice = Convert.ToDouble(unitOfWork.ServiceValueAddedCustomerRepository._GetPriceDGHH((int)model.PackId, (double)model.Length, (double)model.Width, (double)model.Height)?.Packing_Cartons ?? 0);
-                            lading.DBNDPrice = model.DBNDPrice;
-                            totalDVGT += lading.DBNDPrice ?? 0;
-                        }
-                        else
-                        {
-                            double priceDVGT = 0, priceDVGTAfter = 0;
-                            int formula = 0;
-                            bool formulaAbsolute = false;// L?y tuy?t d?i , ngo?c l?i tuong d?i %
-                            if (other.ServiceCode.ToUpper() == "COD" && model.COD > 0)//tinh COD
-                            {
-                                if (_context.BB_View_ServiceCODs.Any(r => priceList.PriceListID == r.PriceListID && r.State == (int)StatusSystem.Enable && r.Money > model.COD))
-                                {
-                                    var serviceCOD = _context.BB_View_ServiceCODs.OrderBy(o => o.Money).First(r => priceList.PriceListID == r.PriceListID && r.State == (int)StatusSystem.Enable && r.Money > model.COD);
-                                    priceDVGT = serviceCOD.Percent_COD ?? 0;
-                                    formula = serviceCOD.FormulaID ?? 0;
-                                }
-                            }
-                            else if (other.ServiceCode.ToUpper() == "NTCPN")
-                            {
-                                var service = _context.Services.SingleOrDefault(o => o.ServiceID == (model.ServiceId ?? 0));
-                                if (service != null && service.GSId.HasValue)
-                                {
-                                    var priceSO = _context.PriceServiceOthers.OrderBy(o => o.GroupServiceId).ThenBy(o => o.WeightMax)
-                                                .FirstOrDefault(o => o.ServiceOtherCode != null && o.GroupServiceId.Value == service.GSId && o.ServiceOtherCode.Equals("NTCPN") && o.WeightMax > weightD);
-                                    if (priceSO != null)
-                                    {
-                                        priceDVGT = priceSO.Value ?? 0;
-                                        formulaAbsolute = priceSO.FormulaAbsolute ?? false;
-                                        formula = priceSO.FormulaId ?? 0;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                var serviceOther = _context.BB_View_ServiceOtherPriceLists.Where(r => r.ServiceID == other.ServiceId && priceList.PriceListID == r.PriceListID && r.State == (int)StatusSystem.Enable).FirstOrDefault();
-                                if (serviceOther != null)
-                                {
-                                    priceDVGT = serviceOther.Money ?? 0;
-                                    formula = serviceOther.FormulaID ?? 0;
-                                }
-                                if (other.ServiceCode.ToUpper() == "BHHH" && model.Insured > 0)
-                                {
-                                    priceDVGT = 0;
-                                    priceDVGTAfter = (lading.Insured ?? 0) * (lading.InsuredPercent ?? 0) / 100;
-                                }
-                            }
-                            if (priceDVGT != 0 && formula > 0)
-                            {
-                                priceDVGTAfter = this.GetPriceByFormula(lading, priceDVGT, formula, weightD);
-                            }
-                            if (other.ServiceCode.ToUpper() == "COD")
-                            {
-                                lading.CODPrice = priceDVGTAfter;
-                            }
-                            else if (other.ServiceCode.ToUpper() == "BHHH")
-                            {
-                                lading.InsuredPrice = priceDVGTAfter;
-                            }
-                            else if (other.ServiceCode.ToUpper() == "KDHH")
-                            {
-                                if (priceDVGTAfter < 30000) priceDVGTAfter = 30000;
-                                lading.KDPrice = priceDVGTAfter;
-                            }
-                            totalDVGT += priceDVGTAfter;
-                        }
-                    }
-                }
-                lading.TotalPriceDVGT = totalDVGT;
-                lading.PriceOther = model.PriceOther ?? 0;
-                var priceListCustomer = _context.PriceListCustomers.FirstOrDefault(o => o.PriceListId == model.PriceListId.Value && o.CustomerId == model.SenderId && o.State == 0);
-                var percent = (priceListCustomer != null) ? (priceListCustomer.PriceListPercent ?? 100) / 100 : 1;
-                lading.PPXDPercent *= percent;
-                lading.PriceMain *= percent;
-                #endregion
-                double totalPrice = lading.PPXDPercent + lading.PriceMain + lading.PriceOther + lading.TotalPriceDVGT ?? 0;
-                double VATPrice = totalPrice * 10 / 100;
-                totalPrice = totalPrice + VATPrice;
-                model.Amount = totalPrice;
-                model.PriceMain = lading.PriceMain;
-                model.TotalPriceDVGT = lading.TotalPriceDVGT;
-                model.PPXDPercent = lading.PPXDPercent;
-                double discountAmount = 0;
-                if (!string.IsNullOrEmpty(model.CouponCode))
-                {
-                    var couponRepository = new CouponRepository(_context);
-                    var discountResult = couponRepository.GetDiscountAmount(model);
-                    if (discountResult.Error == 0)
-                    {
-                        discountAmount = Math.Round((double)discountResult.Data);
-                    }
-                    else message = discountResult.Message;
-                }
-                var calculatePrice = new CalculatePriceModel
-                {
-                    Amount = Math.Round(totalPrice),
-                    PriceMain = Math.Round(lading.PriceMain ?? 0),
-                    PPXDPrice = Math.Round(lading.PPXDPercent ?? 0),
-                    THBBPrice = Math.Round(lading.THBBPrice ?? 0),
-                    BPPrice = Math.Round(lading.BPPrice ?? 0),
-                    CODPrice = Math.Round(lading.CODPrice ?? 0),
-                    InsuredPrice = Math.Round(lading.InsuredPrice ?? 0),
-                    PackPrice = Math.Round(lading.PackPrice ?? 0),
-                    PriceOther = Math.Round(lading.PriceOther ?? 0),
-                    VAT = Math.Round(VATPrice, 0),
-                    KDPrice = Math.Round(lading.KDPrice ?? 0),
-                    WeightToPrice = weightD,
-                    TotalDVGT = Math.Round(lading.TotalPriceDVGT ?? 0),
-                    ExpectedDate = null,
-                    StructureName = (lading.Weight ?? 0) > 0.5 ? "Hàng Hóa" : "Thư Từ",
-                    GrandTotal = Math.Round(totalPrice) - discountAmount,
-                    DiscountAmount = discountAmount,
-                    Message = message
-                };
-                return calculatePrice;
-            }
-            catch (Exception ex)
-            {
-                return new CalculatePriceModel() { Message = ex.Message };
-            }
-        }
-
         public double GetPrice(double weight, int serviceId = 0, int priceListId = 0, int state_from = 0, int state_to = 0, int receive_delivery = 0)
         {
             double priceDefaul = 0;
@@ -386,25 +193,25 @@ namespace NascoWebAPI.Data
                 switch (formula)
                 {
                     case 1: //GIÁ CHUẨN
-                        resultPrice = price <= 100 ? (lading.PriceMain ?? 0) * price / 100 : price;
+                        resultPrice = Math.Abs(price) <= 100 ? (lading.PriceMain ?? 0) * price / 100 : price;
                         break;
                     case 2: //NHÂN TRỌNG LƯỢNG
-                        resultPrice = (price <= 100 ? (lading.PriceMain ?? 0) * price / 100 : price) * weightD;
+                        resultPrice = (Math.Abs(price) <= 100 ? (lading.PriceMain ?? 0) * price / 100 : price) * weightD;
                         break;
                     case 4: //NHÂN % KHAI GIÁ
-                        resultPrice = (price <= 100 ? (lading.Insured ?? 0) * price / 100 : price);
+                        resultPrice = (Math.Abs(price) <= 100 ? (lading.Insured ?? 0) * price / 100 : price);
                         break;
                     case 5: //NHÂN % COD
-                        resultPrice = (price <= 100 ? (lading.COD ?? 0) * price / 100 : price);
+                        resultPrice = (Math.Abs(price) <= 100 ? (lading.COD ?? 0) * price / 100 : price);
                         break;
                     case 6: //NHÂN SỐ KIỆN
-                        resultPrice = (price <= 100 ? (lading.COD ?? 0) * price / 100 : price) * (lading.Number ?? 0);
+                        resultPrice = (Math.Abs(price) <= 100 ? (lading.COD ?? 0) * price / 100 : price) * (lading.Number ?? 0);
                         break;
                     case 7: //GIÁ CHUẨN + PPXD
-                        resultPrice = price <= 100 ? ((lading.PriceMain ?? 0) + (lading.PPXDPercent ?? 0)) * price / 100 : price;
+                        resultPrice = Math.Abs(price) <= 100 ? ((lading.PriceMain ?? 0) + (lading.PPXDPercent ?? 0)) * price / 100 : price;
                         break;
                     case 8: //NHÂN SỐ LƯỢNG SẢN PHẨM (CÁI)
-                        resultPrice = (price <= 100 ? (lading.PriceMain ?? 0) * price / 100 : price) * (lading.KDNumber ?? 0);
+                        resultPrice = (Math.Abs(price) <= 100 ? (lading.PriceMain ?? 0) * price / 100 : price) * (lading.KDNumber ?? 0);
                         break;
                 }
             }
@@ -432,7 +239,295 @@ namespace NascoWebAPI.Data
             }
             return priceFree;
         }
-    }
+        public async Task<double> Computed(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null)
+        {
+            double priceDefaul = 0;
+            if (!(await _context.PriceLists.AnyAsync(o => o.PriceListID == priceListId)))
+            {
+                priceListId = (await _context.PriceLists.FirstAsync(r => r.IsApply == true)).PriceListID;
+            }
+            var locationFrom = await _context.Locations.FirstOrDefaultAsync(o => o.LocationId == cityFromId);
+            var locationTo = await _context.Locations.FirstOrDefaultAsync(o => o.LocationId == cityToId);
+            if (locationFrom == null || (locationFrom.Location_area_Id ?? 0) == 0
+                || locationTo == null || (locationTo.Location_area_Id ?? 0) == 0)
+            { }
+            else if ((await _context.SetupServiceAreas
+                                .AnyAsync(o => o.AreaId == locationFrom.Location_area_Id && o.ServiceId.Value == serviceId)) &&
+                      (await _context.SetupServiceAreas
+                                .AnyAsync(o => o.AreaId == locationTo.Location_area_Id && o.ServiceId.Value == serviceId)) &&
+                     (await _context.DeliveryReceives.AnyAsync(o => o.Id == deliveryReceiveId && o.DeliveryReceiveCode != null && o.DeliveryReceiveCode != string.Empty)))
+            {
+                var areaFromId = (await _context.SetupServiceAreas
+                                .FirstOrDefaultAsync(o => o.AreaId == locationFrom.Location_area_Id && o.ServiceId.Value == serviceId)).AreaIdFrom;
+                var areaToId = (await _context.SetupServiceAreas
+                               .FirstOrDefaultAsync(o => o.AreaId == locationTo.Location_area_Id && o.ServiceId.Value == serviceId)).AreaIdTo;
 
+                var aOFromId = (await _context.SetupAddOns.FirstOrDefaultAsync(o => o.LocationId == locationFrom.LocationId && o.ServiceId.Value == serviceId))?.AOIdFrom;
+                var aOToId = (await _context.SetupAddOns.FirstOrDefaultAsync(o => o.LocationId == locationTo.LocationId && o.ServiceId.Value == serviceId))?.AOIdTo;
+
+                if (aOFromId.HasValue && aOToId.HasValue)
+                {
+                    var priceListDetails = _context.PriceDetails.Where(o => o.AreaIdFrom.Value == areaFromId && o.AreaIdTo.Value == areaToId && o.ServiceId.Value == serviceId && o.SWId.HasValue && o.PriceListId.Value == priceListId);
+                    if (priceListDetails.Count() > 0)
+                    {
+                        var weightIds = priceListDetails.Select(o => o.SWId);
+                        var setupWeights = await _context.SetupWeights.Where(o => weightIds.Contains(o.Id) && o.FormulaId.HasValue && o.SWFrom.HasValue && o.SWTo.HasValue).ToListAsync();
+                        if (setupWeights.Count() > 0)
+                        {
+                            var weightTemp = weight;
+                            var aOFromCode = await _context.AddOns.AnyAsync(o => o.Id == aOFromId.Value) ? _context.AddOns.Single(o => o.Id == aOFromId.Value).AOCode + "From" : string.Empty;
+                            var aOToCode = await _context.AddOns.AnyAsync(o => o.Id == aOToId.Value) ? _context.AddOns.Single(o => o.Id == aOToId.Value).AOCode + "To" : string.Empty;
+                            var deliveryCode = (await _context.DeliveryReceives.SingleAsync(o => o.Id == deliveryReceiveId && o.DeliveryReceiveCode != null && o.DeliveryReceiveCode != string.Empty)).DeliveryReceiveCode.Replace("-", "_");
+                            int? districtTypeId = null;
+                            //
+                            if (cityFromId == cityToId)
+                            {
+                                var districtTypeFromId = _context.Locations.FirstOrDefault(o => o.LocationId == districtFromId)?.DistrictTypeId;
+                                var districtTypeToId = _context.Locations.FirstOrDefault(o => o.LocationId == districtToId)?.DistrictTypeId;
+                                districtTypeId = _context.DistrictTypeMappings.FirstOrDefault(o => o.DistrictTypeFromId == districtTypeFromId && o.DistrictTypeToId == districtTypeToId)?.DistrictTypeId;
+                            }
+
+                            var priceDetail = new PriceDetail();
+                            while (weightTemp >= 0 && setupWeights.Count(o => o.SWFrom.Value <= weightTemp && o.SWTo.Value > weightTemp) > 0)
+                            {
+                                var setupWeight = setupWeights.OrderBy(o => o.SWTo).ThenByDescending(o => o.SWFrom).First(o => o.SWFrom.Value <= weightTemp && o.SWTo.Value > weightTemp);
+                                priceDetail = priceListDetails.First(o => o.SWId == setupWeight.Id);
+
+                                double priceAOFrom = 0;
+                                double priceAOTo = 0;
+                                double priceDTAddOn = 0;
+                                double.TryParse(priceDetail.GetType().GetProperty(deliveryCode).GetValue(priceDetail, null) + "", out double priceMain);
+
+                                if (!string.IsNullOrEmpty(aOFromCode))
+                                    double.TryParse(priceDetail.GetType().GetProperty(aOFromCode).GetValue(priceDetail, null) + "", out priceAOFrom);
+
+                                if (!string.IsNullOrEmpty(aOToCode))
+                                    double.TryParse(priceDetail.GetType().GetProperty(aOToCode).GetValue(priceDetail, null) + "", out priceAOTo);
+                                if (districtTypeId.HasValue)
+                                    priceDTAddOn = (_context.PriceDetailDistrictTypeAddOns.FirstOrDefault(o => o.PriceDetailId == priceDetail.Id && o.DistrictTypeId == districtTypeId)?.PriceAddOn ?? 0);
+                                var totalPrice = (priceMain + priceAOFrom + priceAOTo + priceDTAddOn);
+                                switch (setupWeight.FormulaId)
+                                {
+                                    case (int)StatusFormula.Formula1:
+                                        priceDefaul += totalPrice;
+                                        weightTemp = -1;
+                                        break;
+                                    case (int)StatusFormula.Formula2:
+                                        priceDefaul += totalPrice * Math.Round(weightTemp + 0.00000001, 7);
+                                        weightTemp = -1;
+                                        break;
+                                    case (int)StatusFormula.Formula3:
+                                        var weightSubtract = weightTemp - setupWeight.SWFrom.Value;
+                                        weightSubtract = weightSubtract == 0 ? (setupWeight.SWPlus ?? 0) : weightSubtract;
+                                        priceDefaul += totalPrice * Math.Ceiling(weightSubtract / ((setupWeight.SWPlus ?? 0) > 0 ? setupWeight.SWPlus.Value : 1));
+                                        weightTemp = setupWeight.SWFrom.Value - 0.00000001;
+                                        break;
+                                }
+
+                            }
+
+                            if (customerId.HasValue && priceDetail != null)
+                            {
+                                var priceDetailCustomer = await _context.PriceDetailCustomers.FirstOrDefaultAsync(o => o.State == 0 && o.CustomerId == customerId && o.PriceDetailId == priceDetail.Id);
+                                if (priceDetailCustomer != null)
+                                {
+                                    double.TryParse(priceDetailCustomer.GetValue(deliveryCode + "_DiscountAmount") + "", out double discountAmount);
+                                    priceDefaul = !(priceDetailCustomer.Fixed ?? false) ? priceDefaul * (1 + discountAmount) : discountAmount;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return Math.Round(priceDefaul < 0 ? 0 : priceDefaul);
+        }
+        public async Task<ResultModel<ComputedPriceModel>> Computed(LadingViewModel lading)
+        {
+            var result = new ResultModel<ComputedPriceModel>();
+            var couponCode = lading.CouponCode;
+            var serviceOtherIds = lading.AnotherServiceIds;
+            var priceList = await _context.PriceLists.FirstOrDefaultAsync(x => x.PriceListID == (lading.PriceListId ?? 0));
+            if (priceList != null)
+            {
+                double weightToPrice = (lading.Weight ?? 0) > (lading.Mass ?? 0) ? (lading.Weight ?? 0) : (lading.Mass ?? 0);
+                double chargeDefault = 0;
+                double percent = 0;
+                var tasks = new List<Task>
+                    {
+                        await Task.Factory.StartNew(async () =>
+                        {
+                            using (var context = new ApplicationDbContext())
+                            {
+
+                                var priceListCustomer = await context.PriceListCustomers.FirstOrDefaultAsync(o => o.PriceListId ==(lading.PriceListId ?? 0) && o.CustomerId == (lading.SenderId ?? 0) && o.State == 0);
+                                percent = (priceListCustomer != null) ? (priceListCustomer.PriceListPercent ?? 100) / 100 : 1;
+                            }
+                        }),
+                        await Task.Factory.StartNew(async () =>
+                        {
+                            using (var context = new ApplicationDbContext())
+                            {
+                                using (var priceRepository = new PriceRepository(context))
+                                {
+                                    if ((priceList.PriceListTypeId ?? 0) == 2)
+                                    {
+                                        if (lading.KDNumber.HasValue && lading.Insured.HasValue && lading.KDNumber.Value > 0 && lading.Insured.Value > 0
+                                            && lading.RDFrom.HasValue && lading.StructureID.HasValue)
+                                        {
+                                            chargeDefault = priceRepository.GetPriceHightValue(lading.KDNumber ?? 0, lading.Insured ?? 0, lading.RDFrom ?? 0, lading.StructureID ?? 0);
+                                        }
+                                    }
+                                    else {
+                                        chargeDefault = await priceRepository.Computed(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, lading.CityRecipientId ?? 0, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId);
+                                    }
+                                }
+                            }
+                        })
+                    };
+                await Task.WhenAll(tasks);
+                var computedPrice = new ComputedPriceModel
+                {
+                    ChargeMain = percent * chargeDefault,
+                    Surcharge = lading.PriceOther ?? 0,
+                    ChargeFuel = percent * chargeDefault * (priceList.PriceListFuel ?? 0) / 100
+                };
+                lading.PPXDPercent = computedPrice.ChargeFuel;
+                lading.PriceOther = computedPrice.Surcharge;
+                lading.PriceMain = computedPrice.ChargeMain;
+                if (serviceOtherIds != null)
+                {
+                    foreach (var serviceOtherId in serviceOtherIds)
+                    {
+                        if (serviceOtherId == 117 || serviceOtherId == 41)// DBND , DGHH
+                        {
+                            computedPrice.ServiceOthers.Add(new ServiceOtherModel()
+                            {
+                                Id = serviceOtherId,
+                                Charge = (serviceOtherId == 117 ? lading.DBNDPrice : lading.PackPrice) ?? 0
+                            });
+                        }
+                        else
+                        {
+                            computedPrice.ServiceOthers.Add(new ServiceOtherModel()
+                            {
+                                Id = serviceOtherId,
+                                Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
+                                 lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading)
+                            });
+                        }
+                    }
+                }
+                if (!string.IsNullOrEmpty(couponCode))
+                {
+                    using (var context = new ApplicationDbContext())
+                    {
+                        var couponRepository = new CouponRepository(context);
+                        var discountResult = couponRepository.GetDiscountAmount(couponCode, computedPrice, lading.SenderId);
+                        if (discountResult.Error == 0)
+                        {
+                            computedPrice.DiscountAmount = Math.Round((double)discountResult.Data);
+                        }
+                        else result.Message = discountResult.Message;
+                    }
+                }
+                result.Data = computedPrice;
+                result.Error = 0;
+            }
+            return result;
+        }
+        public async Task<double> ComputedServiceOther(int serviceOtherId, int? priceListId, int? structureId = null, int? cityFromId = null, int? cityToId = null, int? districtFromId = null, int? districtToId = null, object lading = null)
+        {
+            var serviceOtherFomulas = _context.ServiceOtherFormulas.Where(o => o.State == 0 && o.ServiceOtherId == serviceOtherId);
+            //
+            if (await (serviceOtherFomulas.AnyAsync(o => o.PriceListId == priceListId)))
+                serviceOtherFomulas = serviceOtherFomulas.Where(o => o.PriceListId == priceListId);
+            else
+                serviceOtherFomulas = serviceOtherFomulas.Where(o => !o.PriceListId.HasValue);
+            //
+            if ((await serviceOtherFomulas.AnyAsync(o => o.DistrictTypeId.HasValue)))
+            {
+                int? districtTypeFromId = null;
+                int? districtTypeToId = null;
+
+                if (districtFromId.HasValue)
+                {
+                    districtTypeFromId = _context.Locations.FirstOrDefault(o => o.LocationId == districtFromId.Value)?.DistrictTypeId;
+                }
+                if (districtToId.HasValue)
+                {
+                    districtTypeToId = _context.Locations.FirstOrDefault(o => o.LocationId == districtToId.Value)?.DistrictTypeId;
+                }
+                int? districtTypeId = _context.DistrictTypeMappings.FirstOrDefault(o => o.DistrictTypeFromId == districtTypeFromId && o.DistrictTypeToId == districtTypeToId && o.State == 0)?.DistrictTypeToId;
+                if (districtTypeId.HasValue)
+                {
+                    if (serviceOtherFomulas.Any(o => o.DistrictTypeId == districtTypeId && o.CityFromId == cityFromId && o.CityToId == cityToId))
+                        serviceOtherFomulas = serviceOtherFomulas.Where(o => o.DistrictTypeId == districtTypeId);
+                    else
+                        serviceOtherFomulas = serviceOtherFomulas.Where(o => !o.DistrictTypeId.HasValue);
+                }
+            }
+            //if (await (serviceOtherFomulas.AnyAsync(o => o.CityFromId == cityFromId)))
+            //    serviceOtherFomulas = serviceOtherFomulas.Where(o => o.CityFromId == cityFromId);
+            //else
+            //    serviceOtherFomulas = serviceOtherFomulas.Where(o => !o.CityFromId.HasValue);
+            ////
+            //if (await (serviceOtherFomulas.AnyAsync(o => o.CityToId == cityToId)))
+            //    serviceOtherFomulas = serviceOtherFomulas.Where(o => o.CityToId == cityToId);
+            //else
+            //    serviceOtherFomulas = serviceOtherFomulas.Where(o => !o.CityToId.HasValue);
+
+            //
+            if (await (serviceOtherFomulas.AnyAsync(o => o.StructureId == structureId)))
+                serviceOtherFomulas = serviceOtherFomulas.Where(o => o.StructureId == structureId);
+            else
+                serviceOtherFomulas = serviceOtherFomulas.Where(o => !o.StructureId.HasValue);
+
+            var serviceOtherFomula = await serviceOtherFomulas.FirstOrDefaultAsync();
+            if (!string.IsNullOrEmpty(serviceOtherFomula?.ColumnNameMoneyRange))
+            {
+                var moneyRange = GetMoneyRange(serviceOtherFomula?.ColumnNameMoneyRange, lading);
+                serviceOtherFomula = await serviceOtherFomulas.Where(o => o.MoneyRange.Value >= moneyRange)
+                                            .OrderBy(o => o.MoneyRange)
+                                            .FirstOrDefaultAsync();
+            }
+            if (serviceOtherFomula == null)
+                return 0;
+            if (string.IsNullOrEmpty(serviceOtherFomula.Formula))
+                return serviceOtherFomula.ChargeMin ?? 0;
+
+            var formula = ConvertFormula(serviceOtherFomula.Formula, lading);
+            double result = 0;
+            var connection = _context.Database.GetDbConnection();
+
+            connection.Open();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT CAST(" + formula + " AS decimal) ";
+                double.TryParse(command.ExecuteScalar().ToString(), out result);
+            }
+
+            var min = (serviceOtherFomula.ChargeMin ?? 0);
+            return result > min ? result : min;
+        }
+        public string ConvertFormula(string formula, object obj)
+        {
+            var str = formula.Substring(formula.IndexOf("[") + 1)
+                .Split('[')
+                .Select(x => x.Split(']').FirstOrDefault())
+                .Distinct();
+            foreach (var s in str)
+            {
+                var value = obj.GetValue(s) + "";
+                formula = formula.Replace($"[{s}]", value);
+            }
+            return formula;
+        }
+        public double GetMoneyRange(string columnName, object obj)
+        {
+            double.TryParse(obj.GetValue(columnName) + "", out double d);
+            return d;
+        }
+
+    }
 }
 

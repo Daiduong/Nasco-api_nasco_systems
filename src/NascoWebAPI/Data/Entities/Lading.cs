@@ -118,6 +118,13 @@ namespace NascoWebAPI.Data
         public Nullable<int> CouponLadingId { get; set; }
         public bool? IsPartStatus { get; set; }
         public bool? IsConfirmByLading { get; set; }
+        public string ShopCode { get; set; }
+        public DateTime? ExpectedTimePickUp { get; set; }
+        public DateTime? ExpectedTimeDelivery { get; set; }
+        public int? TimesPickUp { get; set; }
+        public int? TimesDelivery { get; set; }
+        public int? TimesDeliveryReturn { get; set; }
+
 
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }

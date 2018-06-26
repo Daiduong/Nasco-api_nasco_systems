@@ -50,10 +50,10 @@ namespace NascoWebAPI.Controllers
             var user = await _officeRepository.GetSingleAsync(o => o.UserName == jwtDecode.Subject);
             if (user != null && !string.IsNullOrWhiteSpace(s))
             {
-                var result = await _customerRepository.GetAsync(c => (c.Phone != null && c.Phone.Contains(s))
+                var result = await _customerRepository.GetAsync(c => c.State == 0 && ((c.Phone != null && c.Phone.Contains(s))
                                    || (c.Phone2 != null && c.Phone2.Contains(s))
                                    || (c.CustomerName != null && c.CustomerName.ToUpper().Contains(s.ToUpper()))
-                                   || (c.CustomerCode != null && c.CustomerCode.ToUpper().Contains(s.ToUpper()))
+                                   || (c.CustomerCode != null && c.CustomerCode.ToUpper().Contains(s.ToUpper())))
                                    , null, null, 10
                                    , inc => inc.City , inc => inc.District);
                 return Json(result);

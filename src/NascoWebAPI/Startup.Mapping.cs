@@ -29,7 +29,7 @@ namespace NascoWebAPI
             services.AddScoped<ITypeOfPackRepository, TypeOfPackRepository>();
             services.AddScoped<IPriceRepository, PriceRepository>();
             services.AddScoped<IStructureRepository, StructureRepository>();
-            services.AddScoped<ILadingMapPriceRepository, LadingMapPriceRepository>();
+            services.AddScoped<ILadingMapServiceRepository, LadingMapServiceRepository>();
             services.AddScoped<IPriceListRepository, PriceListRepository>();
             services.AddScoped<IDeliveryReceiveRepository, DeliveryReceiveRepository>();
             services.AddScoped<ITypePackRepository, TypePackRepository>();
