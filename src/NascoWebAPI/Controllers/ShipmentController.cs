@@ -518,10 +518,14 @@ namespace NascoWebAPI.Controllers
             if (user != null)
             {
                 Expression<Func<Lading, object>>[] includeProperties = getInclude(cols);
-                var result = await _ladingRepository.GetFirstAsync(l => l.Code == ladingCode && l.OfficerDelivery == user.OfficerID, includeProperties: includeProperties);
+                var result = await _ladingRepository.GetFirstAsync(l => l.Code == ladingCode, includeProperties: includeProperties);
                 if (result == null)
                 {
                     return JsonError("Không tìm thấy thông tin vận đơn");
+                }
+                if(!(user.IsGlobalAdministrator ?? false) && result.OfficerDelivery != user.OfficerID)
+                {
+                    return JsonError("Bạn không được phép tra cứu vận đơn này. Vận đơn này do nhân viên khác chịu trách nhiệm");
                 }
                 var ldHistory = await _ladingRepository.GetLastLadingHistoryAsync(result.Id);
                 var jsonLading = Newtonsoft.Json.JsonConvert.SerializeObject(result,
@@ -1389,7 +1393,7 @@ namespace NascoWebAPI.Controllers
                                     lading.Status == (int)StatusLading.DaChuyenHoan)
                             {
                                 #region  Kiện
-                                var packageOfLadingIds = _context.PackageOfLadings.Where(o => o.StatusId == (int)StatusLading.DangPhat
+                                var packageOfLadingIds = _context.PackageOfLadings.Where(o =>(o.StatusId == (int)StatusLading.DangPhat  || o.StatusId == (int)StatusLading.PhatKhongTC )
                                                         && o.DeliveryBy == user.OfficerID
                                                         && o.LadingId == lading.Id
                                                         && o.State == 0)

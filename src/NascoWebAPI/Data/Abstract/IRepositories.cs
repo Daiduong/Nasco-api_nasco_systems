@@ -66,7 +66,7 @@ namespace NascoWebAPI.Data
 
         Task<IEnumerable<Location>> GetCities();
         Task<IEnumerable<Location>> GetDistrictsByCity(int cityId);
-        int GetIdBestMatches(IEnumerable<Location> locations, string locationName);
+        int GetIdBestMatches(IEnumerable<Location> locations, string locationName, uint? percentlimitCost = null);
 
     }
     public interface IServiceRepository : IRepository<Service>

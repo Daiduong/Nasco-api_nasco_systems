@@ -10,6 +10,8 @@ using NascoWebAPI.Helper.JwtBearerAuthentication;
 using Microsoft.Extensions.Logging;
 using NascoWebAPI.Helper.Common;
 using System.Dynamic;
+using NascoWebAPI.Models;
+using NascoWebAPI.Services;
 
 namespace NascoWebAPI.Controllers
 {
@@ -20,13 +22,16 @@ namespace NascoWebAPI.Controllers
     {
         private readonly IOfficerRepository _officeRepository;
         private readonly ILocationRepository _locationRepository;
+        private readonly IGoogleMapService _iGoogleMapService;
         public LocationController(ILogger<UserController> logger,
             IOfficerRepository officeRepository,
-            ILocationRepository locationRepository
+            ILocationRepository locationRepository,
+            IGoogleMapService iGoogleMapService
             ) : base(logger)
         {
             _locationRepository = locationRepository;
             _officeRepository = officeRepository;
+            _iGoogleMapService = iGoogleMapService;
         }
         #region [Get]
         [HttpGet("GetSingle")]
@@ -86,6 +91,12 @@ namespace NascoWebAPI.Controllers
                 }
             }
             return Json(location);
+        }
+        [HttpPost("GetLocationGoogleMap")]
+        public async Task<JsonResult> GetLocationGoogleMap([FromBody]GeocoderRequest request)
+        {
+            var result = await _iGoogleMapService.GetLocation(request);
+            return (result.Data != null) ? JsonSuccess(result.Data, result.Message) : JsonError(result.Message);
         }
     }
 }

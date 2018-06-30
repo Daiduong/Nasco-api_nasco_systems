@@ -49,7 +49,10 @@ namespace NascoWebAPI.Controllers
             obj.Append(new KeyValuePair<string, object>("errorMessage", null));
             return Json(obj);
         }
-
+        public JsonResult JsonSuccess(object data = null, string message = "")
+        {
+            return Json(new { data, message, error = 0 });
+        }
         public JsonResult JsonError(string message)
         {
             return Json(new { errorMessage = message });

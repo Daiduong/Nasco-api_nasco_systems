@@ -2,7 +2,7 @@
 using NascoWebAPI.Services;
 using NascoWebAPI.Services.Interface;
 using NascoWebAPI.Data;
-
+using NascoWebAPI.Client;
 
 namespace NascoWebAPI
 {
@@ -43,6 +43,10 @@ namespace NascoWebAPI
             services.AddScoped<IFlightRepository, FlightRepository>();
             services.AddScoped<ICouponRepository, CouponRepository>();
             services.AddScoped<IPackageOfLadingRepository, PackageOfLadingRepository>();
+            services.AddScoped<IApiClient, ApiClient>();
+            services.AddScoped<IGoogleClient, GoogleClient>();
+            services.AddScoped<IGoogleMapService, GoogleMapService>();
+
         }
     }
 }
