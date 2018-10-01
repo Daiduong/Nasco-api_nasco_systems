@@ -35,5 +35,11 @@ namespace NascoWebAPI.Data
         public Nullable<System.DateTime> ReceivedRealDateTime { get; set; }
         public string Note { get; set; }
         public string ReasonContent { get; set; }
+        [ForeignKey("AirlineId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public Airline Airline { get; set; }
+        [ForeignKey("PoTo"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public PostOffice PoToObj { get; set; }
+        [ForeignKey("PoFrom"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public PostOffice PoFromObj { get; set; }
     }
 }

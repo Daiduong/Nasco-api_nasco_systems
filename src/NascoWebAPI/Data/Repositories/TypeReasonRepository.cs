@@ -170,6 +170,10 @@ namespace NascoWebAPI.Data
         {
             return this.GetListFromLevel(id, (int)PostOfficeType.HUB - 1, postOfficeTypeId);
         }
+        public async Task<IEnumerable<PostOffice>> GetListFromRoot(int? postOfficeMethodId = null)
+        {
+            return GetByMethod(await GetAsync(o => o.State == 0), postOfficeMethodId);
+        }
         public PostOffice GetBranch(int id)
         {
             var po = _context.PostOffices.FirstOrDefault(o => o.PostOfficeID == id);

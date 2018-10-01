@@ -80,12 +80,14 @@ namespace NascoWebAPI.Helper.Common
             Created = 100,
             TakeOff,
             Landing,
-            Cancel
+            Cancel,
+            Confirmed = 105,
         }
         public enum JobType
         {
             KTBAY = 6
         }
+
     }
 
 }

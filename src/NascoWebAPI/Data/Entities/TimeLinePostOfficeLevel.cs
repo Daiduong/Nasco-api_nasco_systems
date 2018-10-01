@@ -13,19 +13,21 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NascoWebAPI.Data
 {
-    [Table("PackageOfLadingHistory")]
-    public partial class PackageOfLadingHistory
+    [Table("TimeLinePostOfficeLevel")]
+    public partial class TimeLinePostOfficeLevel
     {
         public int Id { get; set; }
-        public Nullable<System.DateTime> CreatedDate { get; set; }
         public Nullable<int> CreatedBy { get; set; }
+        public Nullable<System.DateTime> CreatedDate { get; set; }
+        public Nullable<int> ModifiedBy { get; set; }
         public Nullable<System.DateTime> ModifiedDate { get; set; }
         public Nullable<int> State { get; set; }
-        public Nullable<int> PackageOfLadingId { get; set; }
-        public Nullable<int> StatusId { get; set; }
-        public Nullable<int> POCreated { get; set; }
-        public string Note { get; set; }
-        public Nullable<int> ModifiedBy { get; set; }
-        public string Location { get; set; }
+        public Nullable<int> TimeLineId { get; set; }
+        public Nullable<int> PostOfficeLevel { get; set; }
+        public Nullable<System.TimeSpan> TimeStart { get; set; }
+        public Nullable<int> IntervalTime { get; set; }
+        public Nullable<System.TimeSpan> TimeEnd { get; set; }
+        public Nullable<int> IntervalDay { get; set; }
+        public string Code { get; set; }
     }
 }

@@ -50,5 +50,8 @@ namespace NascoWebAPI.Data
         public Nullable<int> TotalLadingRecipientAirport { get; set; }
         public string LadingConfirmIds { get; set; }
         public Nullable<int> TotalLadingConfirm { get; set; }
+        public Nullable<double> TotalWeightToPrice { get; set; }
+        [ForeignKey("PostOfficeId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public PostOffice PostOfficeTo { get; set; }
     }
 }

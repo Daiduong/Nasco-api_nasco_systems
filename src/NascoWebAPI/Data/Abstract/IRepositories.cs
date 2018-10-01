@@ -53,6 +53,7 @@ namespace NascoWebAPI.Data
         IEnumerable<PostOffice> GetListFromLevel(int id, int? level = 0, int? postOfficeTypeId = null);
         IEnumerable<PostOffice> GetListFromBranch(int id, int? postOfficeTypeId = null);
         IEnumerable<PostOffice> GetListFromCenter(int id, int? postOfficeTypeId = null);
+        Task<IEnumerable<PostOffice>> GetListFromRoot(int? postOfficeMethodId = null);
         PostOffice GetBranch(int id);
     }
     public interface ITypeReasonRepository : IRepository<TypeReason> { }
@@ -119,6 +120,7 @@ namespace NascoWebAPI.Data
         Task<IEnumerable<Flight>> GetListFlight(int? poFrom, int? poTo, int[] statusIds = null, int? pageSize = null, int? pageNo = null, string cols = null);
         Task<ResultModel<Flight>> TakeOff(FlightModel model);
         Task<ResultModel<Flight>> Receive(FlightModel model);
+        Task<ResultModel<Flight>> AddOrEdit(FlightModel model);
     }
     public interface ICouponRepository : IRepository<Coupon>
     {
@@ -133,4 +135,15 @@ namespace NascoWebAPI.Data
         Task UpdateIsPartStatusLading(int ladingId);
         Task InsertHistory(int currentUserId, int currentPOId, int packageOfLadingId, int? statusId, string note = "");
     }
+    public interface ITimeLineRepository : IRepository<TimeLine>
+    {
+        Task<IEnumerable<ExpectedTimeModel>> GetListExpectedTime(int cityFromId, int cityToId, int serviceId, int poCurrentId,int? poToLevel = null, int? deliveryReceiveId = null);
+    }
+    public interface IMAWBRepository : IRepository<MAWB>
+    {
+        Task<IEnumerable<MAWBModel>> GetListMAWBNew(int poId);
+        Task<ResultModel<MAWB>> AddOrEdit(MAWBModel model);
+    }
+    public interface IAirlineRepository : IRepository<Airline> { }
+    public interface IReasonRepository : IRepository<Reason> { }
 }

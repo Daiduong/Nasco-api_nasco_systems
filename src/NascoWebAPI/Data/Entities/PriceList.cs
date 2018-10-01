@@ -17,5 +17,6 @@ namespace NascoWebAPI.Data
         public Nullable<System.DateTime> ModifiedDate { get; set; }
         public Nullable<int> State { get; set; }
         public string Note { get; set; }
+        public int? DiscountTypeId { get; set; }
     }
 }

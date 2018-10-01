@@ -346,6 +346,7 @@ namespace NascoWebAPI.Data
             var result = new ResultModel<ComputedPriceModel>();
             var couponCode = lading.CouponCode;
             var serviceOtherIds = lading.AnotherServiceIds;
+            var discountType = new DiscountType();
             var priceList = await _context.PriceLists.FirstOrDefaultAsync(x => x.PriceListID == (lading.PriceListId ?? 0));
             if (priceList != null)
             {
@@ -360,7 +361,14 @@ namespace NascoWebAPI.Data
                             {
 
                                 var priceListCustomer = await context.PriceListCustomers.FirstOrDefaultAsync(o => o.PriceListId ==(lading.PriceListId ?? 0) && o.CustomerId == (lading.SenderId ?? 0) && o.State == 0);
-                                percent = (priceListCustomer != null) ? (priceListCustomer.PriceListPercent ?? 100) / 100 : 1;
+                                if(priceListCustomer != null){
+                                    discountType = await context.DiscountTypes.FirstOrDefaultAsync(o => o.Id  ==  (priceListCustomer.DiscountTypeId ?? 0));
+                                    percent = (priceListCustomer.PriceListPercent ?? 100) / 100 ;
+                                    if (discountType!= null && (discountType.Fixed ?? false))
+                                    {
+                                        percent = priceListCustomer.PriceListPercent ?? 0;
+                                    }
+                                }
                             }
                         }),
                         await Task.Factory.StartNew(async () =>
@@ -387,10 +395,23 @@ namespace NascoWebAPI.Data
                 await Task.WhenAll(tasks);
                 var computedPrice = new ComputedPriceModel
                 {
-                    ChargeMain = percent * chargeDefault,
+                    ChargeMain = chargeDefault,
                     Surcharge = lading.PriceOther ?? 0,
-                    ChargeFuel = percent * chargeDefault * (priceList.PriceListFuel ?? 0) / 100
+                    ChargeFuel = Math.Round(chargeDefault * (priceList.PriceListFuel ?? 0) / 100)
                 };
+                if (discountType != null)
+                {
+                    switch (discountType.Code)
+                    {
+                        case "PP":
+                            computedPrice.ChargeMain = percent * computedPrice.ChargeMain;
+                            computedPrice.ChargeFuel = percent * computedPrice.ChargeFuel;
+                            break;
+                        case "PPM":
+                            computedPrice.ChargeMain = percent * computedPrice.ChargeMain;
+                            break;
+                    }
+                }
                 lading.PPXDPercent = computedPrice.ChargeFuel;
                 lading.PriceOther = computedPrice.Surcharge;
                 lading.PriceMain = computedPrice.ChargeMain;
@@ -398,23 +419,23 @@ namespace NascoWebAPI.Data
                 {
                     foreach (var serviceOtherId in serviceOtherIds)
                     {
+                        var serviceOther = _context.Services.FirstOrDefault(x => x.ServiceID == serviceOtherId);
+                        var serviceOtherModel = new ServiceOtherModel()
+                        {
+                            Id = serviceOtherId,
+                            Name = serviceOther?.ServiceName,
+                            Code = serviceOther?.ServiceCode,
+                        };
                         if (serviceOtherId == 117 || serviceOtherId == 41)// DBND , DGHH
                         {
-                            computedPrice.ServiceOthers.Add(new ServiceOtherModel()
-                            {
-                                Id = serviceOtherId,
-                                Charge = (serviceOtherId == 117 ? lading.DBNDPrice : lading.PackPrice) ?? 0
-                            });
+                            serviceOtherModel.Charge = (serviceOtherId == 117 ? lading.DBNDPrice : lading.PackPrice) ?? 0;
                         }
                         else
                         {
-                            computedPrice.ServiceOthers.Add(new ServiceOtherModel()
-                            {
-                                Id = serviceOtherId,
-                                Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
-                                 lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading)
-                            });
+                            serviceOtherModel.Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
+                                 lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
                         }
+                        computedPrice.ServiceOthers.Add(serviceOtherModel);
                     }
                 }
                 if (!string.IsNullOrEmpty(couponCode))
@@ -505,7 +526,7 @@ namespace NascoWebAPI.Data
                 command.CommandText = "SELECT CAST(" + formula + " AS decimal) ";
                 double.TryParse(command.ExecuteScalar().ToString(), out result);
             }
-
+            connection.Close();
             var min = (serviceOtherFomula.ChargeMin ?? 0);
             return result > min ? result : min;
         }

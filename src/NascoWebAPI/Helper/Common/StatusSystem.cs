@@ -340,5 +340,25 @@ namespace NascoWebAPI.Helper.Common
         InStock, //Nhập kho
         Cancel, //Hủy
     }
-   
+    namespace Process
+    {
+        public enum Process : int
+        {
+            PICKED = 3,
+            INSTOCK = 4,
+            TAKEOFF = 8,
+            LANDING = 9,
+            TRANSPORT = 5,
+            DELIVERING = 11,
+            DELIVERED = 13,
+        }
+    }
+    public enum DeliveryReceiveType
+    {
+        SB_SB = 1,
+        VP_VP,
+        VP_DC,
+        DC_VP,
+        DC_DC
+    }
 }

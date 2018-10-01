@@ -436,13 +436,27 @@ namespace NascoWebAPI.Controllers
             if (user != null)
             {
                 Expression<Func<Lading, bool>> predicate = l => l.Status == statusID;
+                Expression<Func<PackageOfLading, bool>> predicatePOL = l => l.StatusId == statusID;
                 if (statusID == (int)StatusLading.DangLayHang || statusID == (int)StatusLading.ChoLayHang || statusID == (int)StatusLading.DaLayHang)
                 {
                     predicate = l => l.Status == statusID && l.OfficerPickup == user.OfficerID;
+                    predicatePOL = l => l.Id == 0;
                 }
                 else if (statusID == (int)StatusLading.DangPhat || statusID == (int)StatusLading.XuatKho || statusID == (int)StatusLading.PhatKhongTC)
                 {
                     predicate = l => l.Status == statusID && l.OfficerDelivery == user.OfficerID;
+                    predicatePOL = l => l.StatusId == statusID && l.DeliveryBy == user.OfficerID;
+                }
+                else if(statusID == (int)StatusLading.DangTrungChuyen)
+                {
+                    predicate = l => l.Status == statusID && l.OfficerTransferId == user.OfficerID;
+                }
+                var ladingIds = _context.PackageOfLadings
+                    .Where(predicatePOL.And(x => x.LadingId.HasValue))
+                    .Select(x => x.LadingId.Value);
+                if(ladingIds.Count() > 0)
+                {
+                    predicate = predicate.Or(x => ladingIds.Contains((int)x.Id));
                 }
                 Expression<Func<Lading, object>>[] includeProperties = getInclude(cols);
 
@@ -523,7 +537,7 @@ namespace NascoWebAPI.Controllers
                 {
                     return JsonError("Không tìm thấy thông tin vận đơn");
                 }
-                if(!(user.IsGlobalAdministrator ?? false) && result.OfficerDelivery != user.OfficerID)
+                if (!(user.IsGlobalAdministrator ?? false) && result.OfficerDelivery != user.OfficerID)
                 {
                     return JsonError("Bạn không được phép tra cứu vận đơn này. Vận đơn này do nhân viên khác chịu trách nhiệm");
                 }
@@ -631,12 +645,18 @@ namespace NascoWebAPI.Controllers
             var user = await _officeRepository.GetFirstAsync(o => o.UserName == jwtDecode.Subject);
             if (user != null)
             {
+
+                if (ladingModel.ExpectedTimeTransfer.HasValue && ladingModel.ExpectedTimeTransfer.Value.Subtract(DateTime.Now).TotalMinutes < 0)
+                {
+                    return JsonError("Ðã quá giờ trung chuyển. Vui lòng chọn chuyến khác!");
+                }
                 var computed = (await _priceRepository.Computed(ladingModel));
                 if (computed.Error != 0)
                     return JsonError(computed.Message);
                 var computedPrice = computed.Data;
                 if (computedPrice.ChargeMain == 0)
                     return JsonError("Cước phí = 0");
+
                 ladingModel.Amount = computedPrice.TotalCharge;
                 ladingModel.DiscountAmount = computedPrice.DiscountAmount;
                 ladingModel.PriceVAT = computedPrice.ChargeVAT;
@@ -645,23 +665,38 @@ namespace NascoWebAPI.Controllers
                 ladingModel.PPXDPercent = computedPrice.ChargeFuel;
                 ladingModel.PriceOther = computedPrice.Surcharge;
                 Lading lading = new Lading();
+                var isDeliveryAtPO = ladingModel.RDFrom == (int)DeliveryReceiveType.VP_VP || ladingModel.RDFrom == (int)DeliveryReceiveType.DC_VP;
                 var pOId = user.PostOfficeId;
                 var existedCustomer = false;
                 var customerExists = new Customer();
-                #region Người gửi
-                if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
+                if (isDeliveryAtPO)
                 {
-                    customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
-                    if (customerExists != null)
+                    var poToObj = await _postOfficeRepository.GetFirstAsync(x => x.PostOfficeID == ladingModel.POTo && (x.IsFrom ?? false));
+                    if(poToObj == null)
                     {
-                        existedCustomer = true;
+                        return JsonError("Không tìm thấy thông tin trạm phát");
                     }
+                    ladingModel.AddressTo = poToObj.POAddress;
+                    ladingModel.AddressNoteTo = "";
+                    ladingModel.LatTo = poToObj.Lat;
+                    ladingModel.LngTo = poToObj.Lng;
+                    ladingModel.DistrictTo = poToObj.DistrictId;
+                    ladingModel.CityRecipientId = poToObj.CityId;
                 }
-                else
+                #region Người gửi
+                //if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
+                //{
+                customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
+                if (customerExists != null)
                 {
-                    customerExists = await _customerRepository.GetFirstAsync(o => o.CustomerID == ladingModel.SenderId.Value && o.State == 0);
-                    if (customerExists != null) existedCustomer = true;
+                    existedCustomer = true;
                 }
+                //}
+                //else
+                //{
+                //    customerExists = await _customerRepository.GetFirstAsync(o => o.CustomerID == ladingModel.SenderId.Value && o.State == 0);
+                //    if (customerExists != null) existedCustomer = true;
+                //}
                 if (!existedCustomer)
                 {
                     customerExists = new Customer
@@ -713,7 +748,7 @@ namespace NascoWebAPI.Controllers
                 }
                 #endregion
 
-                #region Ng??i nh?n
+                #region Người nhận
 
                 var recipient = new Recipient();
                 //if (ladingModel.RecipientId != null && ladingModel.RecipientId > 0)
@@ -727,16 +762,20 @@ namespace NascoWebAPI.Controllers
                     recipient = dataR ?? new Recipient();
 
                     recipient.State = (int)StatusSystem.Enable;
-                    recipient.Address = ladingModel.RecipientAddress;
                     recipient.Name = ladingModel.RecipientName;
                     recipient.Phone = ladingModel.PhoneTo;
                     recipient.Phone2 = ladingModel.PhoneTo2;
                     recipient.CompanyName = ladingModel.RecipientCompany;
-                    recipient.AddressNote = ladingModel.AddressNoteTo;
-                    recipient.Lat = ladingModel.LatTo;
-                    recipient.Lng = ladingModel.LngTo;
-                    recipient.DistrictId = ladingModel.DistrictTo;
-                    recipient.CityId = ladingModel.CityRecipientId;
+                    if (!isDeliveryAtPO || string.IsNullOrEmpty(recipient.Address)
+                              || (recipient.CityId ?? 0) == 0 || (recipient.Lat ?? 0) == 0 || (recipient.Lng ?? 0) == 0)
+                    {
+                        recipient.Address = ladingModel.AddressTo;
+                        recipient.AddressNote = ladingModel.AddressNoteTo;
+                        recipient.Lat = ladingModel.LatTo;
+                        recipient.Lng = ladingModel.LngTo;
+                        recipient.DistrictId = ladingModel.DistrictTo;
+                        recipient.CityId = ladingModel.CityRecipientId;
+                    }
                     //Insert recipient
                     if (dataR != null)
                     {
@@ -761,6 +800,10 @@ namespace NascoWebAPI.Controllers
                 lading.OfficerId = user.OfficerID;
                 lading.OfficerPickup = user.OfficerID;
                 lading.POCurrent = pOId;
+                lading.ExpectedTimePickUp = DateTime.Now;
+                lading.ExpectedTimeTransfer = ladingModel.ExpectedTimeTransfer ?? DateTime.Now;
+                lading.ExpectedTimeDelivery = ladingModel.ExpectedTimeDelivery;
+                lading.OrderByService = !ladingModel.OrderByService.HasValue || (ladingModel.OrderByService == 0) ? 1 : (ladingModel.OrderByService ?? 1);
                 if (ladingModel.Status == 1)
                 {
                     lading.Status = (int)StatusLading.KHTaoBill;
@@ -824,7 +867,7 @@ namespace NascoWebAPI.Controllers
                 lading.Width = ladingModel.Width;
                 lading.Height = ladingModel.Height;
                 lading.Length = ladingModel.Length;
-                lading.Number = ladingModel.Number ?? 1;
+                lading.Number = Convert.ToInt32(ladingModel.Number ?? 1);
                 if (lading.Number == 0) lading.Number = 1;
                 lading.Mass = Math.Round(ladingModel.Mass ?? 0, 1);
                 lading.Noted = ladingModel.Noted;
@@ -929,7 +972,7 @@ namespace NascoWebAPI.Controllers
                         _ladingRepository.InsertAndInsertLadingHistory(lading);
                         if (string.IsNullOrEmpty(lading.Code))
                         {
-                            lading.Code = _ladingRepository.CodeGenerationByLocationCode(postOffice.LocationId ?? 0, (int)lading.Id);
+                            lading.Code = _ladingRepository.CodeGenerationByLocationCode(postOffice.CityId ?? 0, (int)lading.Id);
                             _ladingRepository.SaveChanges();
                         }
                         if (ladingModel.AnotherServiceId != null)
@@ -1005,6 +1048,10 @@ namespace NascoWebAPI.Controllers
             var user = await _officeRepository.GetFirstAsync(o => o.UserName == jwtDecode.Subject);
             if (user != null)
             {
+                if (ladingModel.ExpectedTimeTransfer.HasValue && ladingModel.ExpectedTimeTransfer.Value.Subtract(DateTime.Now).TotalMinutes < 0)
+                {
+                    return JsonError("Đã quá giờ trung chuyển. Vui lòng chọn chuyến khác!");
+                }
                 var computed = (await _priceRepository.Computed(ladingModel));
                 if (computed.Error != 0)
                     return JsonError(computed.Message);
@@ -1028,6 +1075,21 @@ namespace NascoWebAPI.Controllers
                         lading.Status = (int)StatusLading.DaLayHang;
                         int? poFrom = user.PostOfficeId;
                         int? poTo = ladingModel.POTo;
+                        var isDeliveryAtPO = ladingModel.RDFrom == (int)DeliveryReceiveType.VP_VP || ladingModel.RDFrom == (int)DeliveryReceiveType.DC_VP;
+                        if (isDeliveryAtPO)
+                        {
+                            var poToObj = await _postOfficeRepository.GetFirstAsync(x => x.PostOfficeID == ladingModel.POTo && (x.IsFrom ?? false));
+                            if (poToObj == null)
+                            {
+                                return JsonError("Không tìm thấy thông tin trạm phát");
+                            }
+                            ladingModel.AddressTo = poToObj.POAddress;
+                            ladingModel.AddressNoteTo = "";
+                            ladingModel.LatTo = poToObj.Lat;
+                            ladingModel.LngTo = poToObj.Lng;
+                            ladingModel.DistrictTo = poToObj.DistrictId;
+                            ladingModel.CityRecipientId = poToObj.CityId;
+                        }
                         if ((ladingModel.LatTo ?? 0) == 0 || (ladingModel.LngTo ?? 0) == 0 || (ladingTemp.AddressTo != null && (ladingModel.AddressTo.Trim().ToUpper().Equals(ladingTemp.AddressTo.Trim().ToUpper()))))
                         {
                             ladingModel.LatTo = ladingTemp.LatTo;
@@ -1040,19 +1102,19 @@ namespace NascoWebAPI.Controllers
                         var existedCustomer = false;
                         var customerExists = new Customer();
                         #region Người gửi
-                        if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
+                        //if (!ladingModel.SenderId.HasValue || ladingModel.SenderId <= 0)
+                        //{
+                        customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
+                        if (customerExists != null)
                         {
-                            customerExists = await _customerRepository.GetCustomerByPhone(ladingModel.SenderPhone);
-                            if (customerExists != null)
-                            {
-                                existedCustomer = true;
-                            }
+                            existedCustomer = true;
                         }
-                        else
-                        {
-                            customerExists = await _customerRepository.GetFirstAsync(o => o.CustomerID == ladingModel.SenderId.Value && o.State == 0);
-                            if (customerExists != null) existedCustomer = true;
-                        }
+                        //}
+                        //else
+                        //{
+                        //    customerExists = await _customerRepository.GetFirstAsync(o => o.CustomerID == ladingModel.SenderId.Value && o.State == 0);
+                        //    if (customerExists != null) existedCustomer = true;
+                        //}
                         if (!existedCustomer)
                         {
                             customerExists = new Customer
@@ -1111,16 +1173,21 @@ namespace NascoWebAPI.Controllers
                             recipient = dataR ?? new Recipient();
 
                             recipient.State = (int)StatusSystem.Enable;
-                            recipient.Address = ladingModel.AddressTo;
+
                             recipient.Name = ladingModel.NameTo;
                             recipient.Phone = ladingModel.PhoneTo;
                             recipient.Phone2 = ladingModel.PhoneTo2;
                             recipient.CompanyName = ladingModel.CompanyTo;
-                            recipient.AddressNote = ladingModel.AddressNoteTo;
-                            recipient.Lat = ladingModel.LatTo;
-                            recipient.Lng = ladingModel.LngTo;
-                            recipient.DistrictId = ladingModel.DistrictTo;
-                            recipient.CityId = ladingModel.CityRecipientId;
+                            if (!isDeliveryAtPO || string.IsNullOrEmpty(recipient.Address)
+                                || (recipient.CityId ?? 0) == 0 || (recipient.Lat ?? 0) == 0 || (recipient.Lng ?? 0) == 0)
+                            {
+                                recipient.Address = ladingModel.AddressTo;
+                                recipient.AddressNote = ladingModel.AddressNoteTo;
+                                recipient.Lat = ladingModel.LatTo;
+                                recipient.Lng = ladingModel.LngTo;
+                                recipient.DistrictId = ladingModel.DistrictTo;
+                                recipient.CityId = ladingModel.CityRecipientId;
+                            }
                             //Insert recipient
                             if (dataR != null)
                             {
@@ -1151,6 +1218,10 @@ namespace NascoWebAPI.Controllers
                         lading.DistrictTo = ladingModel.DistrictTo;
                         lading.AddressNoteTo = ladingModel.AddressNoteTo;
                         lading.AddressNoteFrom = ladingModel.AddressNoteFrom;
+                        lading.ExpectedTimePickUp = DateTime.Now;
+                        lading.ExpectedTimeTransfer = ladingModel.ExpectedTimeTransfer ?? DateTime.Now;
+                        lading.ExpectedTimeDelivery = ladingModel.ExpectedTimeDelivery;
+                        lading.OrderByService = !ladingModel.OrderByService.HasValue || (ladingModel.OrderByService == 0) ? 1 : (ladingModel.OrderByService ?? 1);
                         #region [Set PostOffice] 
 
                         if ((poTo ?? 0) <= 0)
@@ -1193,7 +1264,7 @@ namespace NascoWebAPI.Controllers
                         lading.Width = ladingModel.Width;
                         lading.Height = ladingModel.Height;
                         lading.Length = ladingModel.Length;
-                        lading.Number = ladingModel.Number ?? 1;
+                        lading.Number = Convert.ToInt32(ladingModel.Number ?? 1);
                         if (lading.Number == 0) lading.Number = 1;
                         lading.Mass = Math.Round(ladingModel.Mass ?? 0, 1);
                         lading.Noted = ladingModel.Noted;
@@ -1278,7 +1349,7 @@ namespace NascoWebAPI.Controllers
                         _ladingRepository.SaveChanges();
                         if (string.IsNullOrEmpty(ladingModel.Code))
                         {
-                            lading.Code = _ladingRepository.CodeGenerationByLocationCode(postOffice.LocationId ?? 0, (int)lading.Id);
+                            lading.Code = _ladingRepository.CodeGenerationByLocationCode(postOffice.CityId ?? 0, (int)lading.Id);
                         }
                         else
                         {
@@ -1367,6 +1438,7 @@ namespace NascoWebAPI.Controllers
                         Lading lading = _ladingRepository.GetSingle(l => l.Id == id);
                         var statusCurrentId = lading.Status ?? 0;
                         var note = lading.Noted;
+                        var isReturn = lading.Return ?? false;
                         if (lading.State != 0)
                         {
                             return JsonError("Vận đơn đã bị hủy");
@@ -1375,6 +1447,10 @@ namespace NascoWebAPI.Controllers
                         {
                             lading.ModifiedBy = user.OfficerID;
                             //lading.Recipient = null;
+                            if ((int)StatusLading.ThanhCong == lading.Status && isReturn)
+                            {
+                                lading.Status = (int)StatusLading.DaChuyenHoan;
+                            }
                             if ((int)StatusLading.DangLayHang == lading.Status)
                             {
                                 if (lading.OfficerPickup != user.OfficerID)
@@ -1393,7 +1469,7 @@ namespace NascoWebAPI.Controllers
                                     lading.Status == (int)StatusLading.DaChuyenHoan)
                             {
                                 #region  Kiện
-                                var packageOfLadingIds = _context.PackageOfLadings.Where(o =>(o.StatusId == (int)StatusLading.DangPhat  || o.StatusId == (int)StatusLading.PhatKhongTC )
+                                var packageOfLadingIds = _context.PackageOfLadings.Where(o => (o.StatusId == (int)StatusLading.DangPhat || o.StatusId == (int)StatusLading.PhatKhongTC)
                                                         && o.DeliveryBy == user.OfficerID
                                                         && o.LadingId == lading.Id
                                                         && o.State == 0)
@@ -1409,12 +1485,12 @@ namespace NascoWebAPI.Controllers
                                            if (packageOfLading != null)
                                            {
                                                packageOfLading.StatusId = lading.Status;
+                                               if (packageOfLading.StatusId == (int)StatusLading.HoanGoc) packageOfLading.Return = true;
                                                if (packageOfLading.StatusId == (int)StatusLading.ThanhCong ||
                                                    packageOfLading.StatusId == (int)StatusLading.DaChuyenHoan)
                                                {
                                                    packageOfLading.RecipientReality = lading.Recipient_reality;
                                                    packageOfLading.FinishDate = DateTime.Now;
-                                                   if (packageOfLading.StatusId == (int)StatusLading.DaChuyenHoan) packageOfLading.Return = true;
                                                }
                                                packageOfLadingRepository.Update(user.OfficerID, user.PostOfficeId ?? 0, packageOfLading).Wait();
                                            }
@@ -1516,13 +1592,14 @@ namespace NascoWebAPI.Controllers
             }
             return JsonError("null");
         }
+
         #endregion
         protected override void Dispose(bool disposing)
         {
             _ladingRepository.Dispose();
             base.Dispose(disposing);
         }
-
+        #region GET INCLUDES
         public Expression<Func<Lading, object>>[] getInclude(string cols)
         {
             List<Expression<Func<Lading, object>>> includeProperties = new List<Expression<Func<Lading, object>>>();
@@ -1627,6 +1704,6 @@ namespace NascoWebAPI.Controllers
             }
             return includeProperties.ToArray();
         }
-
+        #endregion
     }
 }

@@ -130,6 +130,21 @@ namespace NascoWebAPI.Models
         public string DBNDTo { get; set; }
         public string DBNDNote { get; set; }
         public bool IsMultiplePackage { get; set; }
+        public string ShopCode { get; set; }
+        public DateTime? ExpectedTimePickUp { get; set; }
+        public DateTime? ExpectedTimeDelivery { get; set; }
+        public DateTime? ExpectedTimeTransfer { get; set; }
+        public int? POMediateId { get; set; }
+        public bool IsInternal { get; set; }
+        public int? CountryFromId { get; set; }
+        public int? CountryToId { get; set; }
+        public string EmailFrom { get; set; }
+        public string EmailTo { get; set; }
+        public string IdentityFrom { get; set; }
+        public string IdentityTo { get; set; }
+        public string PostCodeTo { get; set; }
+        public int? OrderByService { get; set; }
+
     }
     public class NumberDIM
     {

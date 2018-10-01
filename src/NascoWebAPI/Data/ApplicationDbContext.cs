@@ -94,8 +94,10 @@ namespace NascoWebAPI
         public virtual DbSet<PriceDetailCustomer> PriceDetailCustomers { get; set; }
         public virtual DbSet<DistrictTypeMapping> DistrictTypeMappings { get; set; }
         public virtual DbSet<PriceDetailDistrictTypeAddOn> PriceDetailDistrictTypeAddOns { get; set; }
-
-
+        public virtual DbSet<TimeLine> TimeLines { get; set; }
+        public virtual DbSet<TimeLinePostOfficeLevel> TimeLinePostOfficeLevels { get; set; }
+        public virtual DbSet<Airline> Airlines { get; set; }
+        public virtual DbSet<Reason> Reasons { get; set; }
 
         #region View
         public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }

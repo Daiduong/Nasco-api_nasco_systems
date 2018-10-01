@@ -49,7 +49,7 @@ namespace NascoWebAPI.Services
                             break;
                         };
                     };
-                    foreach (var geocoderResult in geocoderResponse.Results.Reverse())
+                    foreach (var geocoderResult in geocoderResponse.Results)
                     {
                         if (geocoderResult.Types.Any(o => typeApplies.Contains(o)))
                         {
@@ -58,9 +58,9 @@ namespace NascoWebAPI.Services
                             break;
                         }
                     }
-                    if (location.Lat == 0 || string.IsNullOrEmpty(location.CityName) || string.IsNullOrEmpty(location.DistrictName))
+                    if ((location.Lat == 0 || string.IsNullOrEmpty(location.CityName) || string.IsNullOrEmpty(location.DistrictName)) && index <= 1)
                     {
-                        return await this.GetLocation(new GeocoderRequest() { Location = geocoderResponse.Results[0].Geometry.Location });
+                        return await this.GetLocation(new GeocoderRequest() { Location = geocoderResponse.Results[0].Geometry.Location }, ++index);
                     }
                     if (!string.IsNullOrEmpty(location.CityName) && !string.IsNullOrEmpty(location.DistrictName))
                     {
@@ -68,12 +68,14 @@ namespace NascoWebAPI.Services
                         var cityId = _locationRepository.GetIdBestMatches(cities, location.CityName);
                         var districts = await _locationRepository.GetDistrictsByCity(cityId);
                         var districtId = _locationRepository.GetIdBestMatches(districts, location.DistrictName, 50);
+
                         location.DistrictId = districtId;
                         location.CityId = cityId;
-                        if (location.DistrictId == 0)
+                        if (location.DistrictId == 0 && index < 1)
                         {
                             return await this.GetLocation(new GeocoderRequest() { Location = geocoderResponse.Results[0].Geometry.Location }, ++index);
                         }
+
                         result.Error = 0;
                         result.Data = location;
                     };

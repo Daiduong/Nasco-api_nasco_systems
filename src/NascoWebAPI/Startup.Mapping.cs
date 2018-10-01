@@ -46,6 +46,10 @@ namespace NascoWebAPI
             services.AddScoped<IApiClient, ApiClient>();
             services.AddScoped<IGoogleClient, GoogleClient>();
             services.AddScoped<IGoogleMapService, GoogleMapService>();
+            services.AddScoped<ITimeLineRepository, TimeLineRepository>();
+            services.AddScoped<IAirlineRepository, AirlineRepository>();
+            services.AddScoped<IMAWBRepository, MAWBRepository>();
+            services.AddScoped<IReasonRepository, ReasonRepository>();
 
         }
     }

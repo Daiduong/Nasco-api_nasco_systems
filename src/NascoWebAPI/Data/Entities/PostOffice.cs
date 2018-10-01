@@ -16,13 +16,13 @@ namespace NascoWebAPI.Data
         public string POEmail { get; set; }
         public string POFaxNumber { get; set; }
         public string POAddress { get; set; }
-        public Nullable<int> State { get; set; }
-        public Nullable<int> LocationId { get; set; }
-        public Nullable<int> LocationDistrictId { get; set; }
+        public int? State { get; set; }
+        public int? LocationId { get; set; }
+        public int? LocationDistrictId { get; set; }
         public Nullable<double> Lat { get; set; }
         public Nullable<double> Lng { get; set; }
-        public Nullable<int> Position { get; set; }
-        public Nullable<int> LocationAreaID { get; set; }
+        public int? Position { get; set; }
+        public int? LocationAreaID { get; set; }
         public Nullable<bool> IsCenter { get; set; }
         public int? POCenterID { get; set; }
         public bool? IsFrom { get; set; }
@@ -32,5 +32,10 @@ namespace NascoWebAPI.Data
         public int? Level { get; set; }
         public int? PostOfficeTypeId { get; set; }
         public int? SetsId { get; set; }
+        public int? CityId { get; set; }
+        public int? DistrictId { get; set; }
+        public int? Order { get; set; }
+        public string Note { get; set; }
+        public bool? IsInternal { get; set; }
     }
 }

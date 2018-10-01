@@ -91,5 +91,11 @@ namespace NascoWebAPI.Helper
             }
             return (int)StatusLadingTemp.Cancel;
         }
+        public static string GetCodeWithMinLegth(int id, ushort length)
+        {
+            var divide = id / (int)(Math.Pow(10, length));
+            length += (ushort)Math.Log10(divide);
+            return id.ToString("D" + length);
+        }
     }
 }

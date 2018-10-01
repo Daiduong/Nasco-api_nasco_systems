@@ -113,7 +113,7 @@ namespace NascoWebAPI.Data
                     entity.CODKeepBy = currentUser.OfficerID;
                     entity.PostOfficeKeepCOD = currentUser.PostOfficeId;
                 }
-                if (entity.Status.Value == (int)StatusLading.ThanhCong && entity.PaymentType == (int)PaymentType.Recipient)
+                if (entity.Status.Value == (int)StatusLading.ThanhCong && !(entity.PaymentAmount ?? false) && entity.PaymentType == (int)PaymentType.Recipient)
                 {
                     entity.PaymentAmount = true;
                     entity.AmountKeepBy = currentUser.OfficerID;

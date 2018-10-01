@@ -77,9 +77,9 @@ namespace NascoWebAPI.Data
             if (lading != null)
             {
                 var isPart = false;
-                if (this.Any(o => o.LadingId == ladingId))
+                if (this.Any(o => o.LadingId == ladingId && o.State == 0))
                 {
-                    isPart = this.Any(o => o.LadingId == ladingId && o.StatusId != lading.Status);
+                    isPart = this.Any(o => o.LadingId == ladingId && o.StatusId != lading.Status && o.State == 0);
                 }
                 lading.IsPartStatus = isPart;
                 await _context.SaveChangesAsync();
@@ -91,7 +91,7 @@ namespace NascoWebAPI.Data
             {
                 CreatedBy = currentUserId,
                 CreatedDate = DateTime.Now,
-                //ModifiedBy = currentUserId,
+                ModifiedBy = currentUserId,
                 ModifiedDate = DateTime.Now,
                 POCreated = currentPOId,
                 PackageOfLadingId = packageOfLadingId,

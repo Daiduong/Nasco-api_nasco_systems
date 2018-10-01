@@ -25,6 +25,7 @@ namespace NascoWebAPI.Models
         public double DiscountAmount { get; set; }
         public double GrandTotal { get; set; }
         public string Message { get; set; }
+        public List<ServiceOtherModel> ServiceOthers { get; set; }
         public CalculatePriceModel()
         {
 
@@ -39,6 +40,7 @@ namespace NascoWebAPI.Models
             DiscountAmount = computedPriceModel.DiscountAmount;
             GrandTotal = computedPriceModel.GrandTotal;
             PriceOther = computedPriceModel.Surcharge;
+            ServiceOthers = computedPriceModel.ServiceOthers;
         }
     }
     public class ComputedPriceModel
@@ -71,7 +73,7 @@ namespace NascoWebAPI.Models
         {
             get
             {
-                return (this.ChargeMain + this.ChargeFuel + this.ChargeAddition + this.Surcharge) * 0.1;
+                return Math.Round((this.ChargeMain + this.ChargeFuel + this.ChargeAddition + this.Surcharge) * 0.1);
             }
         }
         public double DiscountAmount { get; set; }
@@ -85,6 +87,7 @@ namespace NascoWebAPI.Models
     {
         public int Id { get; set; }
         public string Code { get; set; }
+        public string Name { get; set; }
         public double Charge { get; set; } = 0;
         public ServiceOtherModel() { }
         public ServiceOtherModel(int id, string code, double charge)
