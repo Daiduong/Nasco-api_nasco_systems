@@ -170,7 +170,7 @@ namespace NascoWebAPI.Data
                 _iLadingHistoryRepository.SaveChanges();
 
                 this.SaveChanges();
-                if (entity.Status == (int)StatusLading.ThanhCong && _context.Services.Any(o => o.ServiceID == entity.ServiceId && o.GSId.Value == 1))
+                if (entity.Status == (int)StatusLading.ThanhCong && _context.Services.Any(o => o.ServiceID == entity.ServiceId && (o.IsSendSMS ?? false)))
                 {
                     var task = ApiCustomer.LadingSendSMS((int)entity.Id, entity.POTo ?? 0, 4);
                 }

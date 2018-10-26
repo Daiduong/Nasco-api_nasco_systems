@@ -135,6 +135,9 @@ namespace NascoWebAPI.Data
         public string PostCodeTo { get; set; }
         public int? OrderByService { get; set; }
         public DateTime? ExpectedTimeTransfer { get; set; }
+        public DateTime? ExpectedTimeTakeOff { get; set; }
+        public double? DistanceFrom { get; set; }
+        public double? DistanceTo { get; set; }
 
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }
