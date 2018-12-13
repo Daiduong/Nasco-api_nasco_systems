@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,7 +16,6 @@ namespace NascoWebAPI.Data
     public class Repository<T> : IRepository<T>, IDisposable
             where T : class
     {
-
         protected ApplicationDbContext _context;
         private bool _disposed;
         #region Properties

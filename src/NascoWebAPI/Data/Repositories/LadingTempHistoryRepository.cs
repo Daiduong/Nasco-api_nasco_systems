@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NascoWebAPI.Helper;
 using NascoWebAPI.Helper.Common;
 using System;

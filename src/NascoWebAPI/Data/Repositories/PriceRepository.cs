@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NascoWebAPI.Helper;
 using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
@@ -7,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using static NascoWebAPI.Helper.Common.Constants;
 
 namespace NascoWebAPI.Data
 {
@@ -386,7 +388,16 @@ namespace NascoWebAPI.Data
                                         }
                                     }
                                     else {
-                                        chargeDefault = await priceRepository.Computed(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, lading.CityRecipientId ?? 0, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId);
+                                        var cityRecipientId = lading.CityRecipientId ?? 0;
+                                        if (lading.POMediateId.HasValue && lading.POTo.HasValue)
+                                        {
+                                            var poMediate = context.PostOffices.SingleOrDefault(x => x.PostOfficeID == lading.POMediateId.Value);
+                                            if(poMediate != null && poMediate.CityId.HasValue )
+                                            {
+                                                cityRecipientId = poMediate.CityId ?? 0;
+                                            }
+                                        }
+                                        chargeDefault = await priceRepository.Computed(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, cityRecipientId, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId);
                                     }
                                 }
                             }
@@ -426,16 +437,19 @@ namespace NascoWebAPI.Data
                             Name = serviceOther?.ServiceName,
                             Code = serviceOther?.ServiceCode,
                         };
-                        if (serviceOtherId == 117 || serviceOtherId == 41)// DBND , DGHH
+                        if (serviceOtherId == (int)ServiceOther.PACK)// DBND 
                         {
-                            serviceOtherModel.Charge = (serviceOtherId == 117 ? lading.DBNDPrice : lading.PackPrice) ?? 0;
+                            serviceOtherModel.Charge = lading.PackPrice ?? 0;
                         }
                         else
                         {
                             serviceOtherModel.Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
                                  lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
                         }
-                        computedPrice.ServiceOthers.Add(serviceOtherModel);
+                        if (serviceOtherModel.Charge > 0 || (serviceOtherModel.Charge == 0 && serviceOtherId != (int)ServiceOther.DBND_PH && serviceOtherId != (int)ServiceOther.DBND_LH))
+                        {
+                            computedPrice.ServiceOthers.Add(serviceOtherModel);
+                        }
                     }
                 }
                 if (!string.IsNullOrEmpty(couponCode))

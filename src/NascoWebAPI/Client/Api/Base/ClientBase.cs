@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.Extensions.Logging;
 using NascoWebAPI.Client;
 using NascoWebAPI.Helper;
 using NascoWebAPI.Models;
@@ -16,16 +17,20 @@ namespace NascoWebAPI.Client
 {
     public abstract class ClientBase
     {
-        private readonly IApiClient apiClient;
+        private readonly IApiClient _apiClient;
 
         protected ClientBase(IApiClient apiClient)
         {
-            this.apiClient = apiClient;
+            _apiClient = apiClient;
         }
 
         protected async Task<TResponse> GetJsonDecodedContent<TResponse, TContentResponse>(string uri, params KeyValuePair<string, string>[] requestParameters) where TResponse : ApiResponse<TContentResponse>, new()
         {
-            var apiResponse = await apiClient.GetFormEncodedContent(uri, requestParameters);
+            return await GetJsonDecodedContent<TResponse, TContentResponse>(uri, null, requestParameters);
+        }
+        protected async Task<TResponse> GetJsonDecodedContent<TResponse, TContentResponse>(string uri, KeyValuePair<string, string>[] headers, params KeyValuePair<string, string>[] requestParameters) where TResponse : ApiResponse<TContentResponse>, new()
+        {
+            var apiResponse = await _apiClient.GetFormEncodedContent(uri, headers, requestParameters);
             var response = await CreateJsonResponse<TResponse>(apiResponse);
             if (response.StatusIsSuccessful)
             {
@@ -36,55 +41,52 @@ namespace NascoWebAPI.Client
             return response;
         }
         protected async Task<TResponse> PostEncodedContent<TResponse, TContentResponse, TModel>(string url, TModel model)
-            where TModel : ApiModel
-            where TContentResponse : ApiModel
+            where TModel : class
+            where TContentResponse : class
             where TResponse : ApiResponse<TContentResponse>, new()
         {
-            using (var apiResponse = await apiClient.PostJsonEncodedContent(url, model))
+            return await PostEncodedContent<TResponse, TContentResponse, TModel>(url, null, model);
+        }
+        protected async Task<TResponse> PostEncodedContent<TResponse, TContentResponse, TModel>(string url, KeyValuePair<string, string>[] headers, TModel model)
+           where TModel : class
+           where TContentResponse : class
+           where TResponse : ApiResponse<TContentResponse>, new()
+        {
+            using (var apiResponse = await _apiClient.PostJsonEncodedContent(url, headers, model))
             {
                 var response = await CreateJsonResponse<TResponse>(apiResponse);
                 if (response.StatusIsSuccessful)
                 {
                     var token = JToken.Parse(response.ResponseResult);
-
-                    if (token is JArray)
-                    {
-                        var jsonResponse = token.ToObject<TContentResponse>();
-                        response.Data = jsonResponse;
-                    }
-                    else if (token is JObject)
-                    {
-                        var jsonResponse = JObject.Parse(response.ResponseResult);
-                        response.CopyFromJOject(jsonResponse);
-                    }
+                    var jsonResponse = token.ToObject<TContentResponse>();
+                    response.Data = jsonResponse;
                 }
                 return response;
             }
         }
         protected async Task<TResponse> PostEncodedContent<TResponse, TContentResponse>(string url, TContentResponse model)
-            where TContentResponse : ApiModel
+          where TContentResponse : class
+          where TResponse : ApiResponse<TContentResponse>, new()
+        {
+            return await PostEncodedContent<TResponse, TContentResponse>(url, null, model);
+        }
+        protected async Task<TResponse> PostEncodedContent<TResponse, TContentResponse>(string url, KeyValuePair<string, string>[] headers, TContentResponse model)
+            where TContentResponse : class
             where TResponse : ApiResponse<TContentResponse>, new()
         {
-            using (var apiResponse = await apiClient.PostJsonEncodedContent(url, model))
+            using (var apiResponse = await _apiClient.PostJsonEncodedContent(url, headers, model))
             {
                 var response = await CreateJsonResponse<TResponse>(apiResponse);
                 if (response.StatusIsSuccessful)
                 {
                     var token = JToken.Parse(response.ResponseResult);
-                    if (token is JArray)
-                    {
-                        var jsonResponse = token.ToObject<TContentResponse>();
-                        response.Data = jsonResponse;
-                    }
-                    else if (token is JObject)
-                    {
-                        var jsonResponse = JObject.Parse(response.ResponseResult);
-                        response.CopyFromJOject(jsonResponse);
-                    }
+                    var jsonResponse = token.ToObject<TContentResponse>();
+                    response.Data = jsonResponse;
                 }
                 return response;
             }
         }
+
         private static async Task<TResponse> CreateJsonResponse<TResponse>(HttpResponseMessage response) where TResponse : ApiResponse, new()
         {
             var clientResponse = new TResponse

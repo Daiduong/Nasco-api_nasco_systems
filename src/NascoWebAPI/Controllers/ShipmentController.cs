@@ -21,6 +21,7 @@ using NascoWebAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using NascoWebAPI.Services;
+using Microsoft.AspNetCore.Hosting;
 
 namespace NascoWebAPI.Controllers
 {
@@ -49,9 +50,10 @@ namespace NascoWebAPI.Controllers
         private readonly IPriceRepository _priceRepository;
         private readonly IEMSService _iEMSService;
         private readonly ApplicationDbContext _context;
-
+        private readonly IHostingEnvironment _env;
         public ShipmentController(
             ILogger<UserController> logger,
+            ILadingRepository ladingRepository,
             IOfficerRepository officeRepository,
             IBKInternalRepository bkInternalRepository,
              IBKDeliveryRepository bkDeliveryRepository,
@@ -70,6 +72,7 @@ namespace NascoWebAPI.Controllers
              IPackageOfLadingRepository packageOfLadingRepository,
              IPriceRepository priceRepository,
              IEMSService iEMSService,
+             IHostingEnvironment env,
         ApplicationDbContext context) : base(logger)
         {
             _officeRepository = officeRepository;
@@ -91,7 +94,8 @@ namespace NascoWebAPI.Controllers
             _priceRepository = priceRepository;
             _iEMSService = iEMSService;
             _context = context;
-            _ladingRepository = new LadingRepository(context);
+            _ladingRepository = ladingRepository;
+            _env = env;
         }
         #region [Get]
         [HttpGet("IsExistedCode")]
@@ -142,203 +146,8 @@ namespace NascoWebAPI.Controllers
                 {
                     return JsonError("Không tìm thấy bảng kê");
                 }
-                var bkInternal = await _bkInternalRepository.GetFirstAsync(i => i.Code_BK_internal.Equals(internalCode));
-                if (bkInternal == null || string.IsNullOrEmpty(bkInternal.ListLadingId) || bkInternal.ListLadingId.Replace("//", ";").Split(';').ToArray().Length == 0)
-                {
-                    return JsonError("Không tìm thấy bảng kê");
-                }
-                var statusLadingSuccess = (int)StatusLading.XuatKhoTrungChuyen;
-                var statusLadingScanned = (int)StatusLading.DangTrungChuyen;
-                var isFly = (bkInternal.IsFly ?? false);
-                var poConfirm = bkInternal.POCreate.Value;
-                var allowConfirm = true;//Được phép nhận hàng
-                var confirmTo = false;//Xác nhận bởi trạm gửi
-                var isDelivery = true;
-
-                var ladingIds = bkInternal.ListLadingId.Replace("//", ";").Split(';').Select(long.Parse).ToArray();
-                var packageOfLadingIds = new int[0];
-                if (!string.IsNullOrEmpty(bkInternal.PackageOfLadingIds))
-                {
-                    packageOfLadingIds = bkInternal.PackageOfLadingIds.Replace("//", ";").Split(';').Select(int.Parse).ToArray();
-                }
-                var queryPackageOfLading = _context.PackageOfLadings.Where(o => packageOfLadingIds.Contains(o.Id));
-                var queryLading = _context.Ladings.Where(o => ladingIds.Contains(o.Id) && o.State == 0);
-                switch (bkInternal.Status)
-                {
-                    case (int)StatusBK.DaTao:
-                        bkInternal.Status = (int)StatusBK.TramGuiDangTrungChuyen;
-                        break;
-                    case (int)StatusBK.TramGuiDangTrungChuyen:
-                        if (!queryPackageOfLading.Any(o => o.StatusId == (int)StatusLading.XuatKhoTrungChuyen) &&
-                            !queryLading.Any(o => o.Status == (int)StatusLading.XuatKhoTrungChuyen))
-                        {
-                            if (!isFly) allowConfirm = false;
-                            else
-                            {
-                                isDelivery = false;
-                                bkInternal.Status = (int)StatusBK.TramGuiBPSBXN;
-                                statusLadingSuccess = (int)StatusLading.DangTrungChuyen;
-                                statusLadingScanned = (int)StatusLading.SBXN;
-                            }
-                        }
-                        break;
-                    case (int)StatusBK.DenSanBay:
-                        confirmTo = true;
-                        poConfirm = bkInternal.PostOfficeId.Value;
-                        isDelivery = false;
-                        bkInternal.Status = (int)StatusBK.TramNhanBPSBXN;
-                        if (queryPackageOfLading.Any(o => o.StatusId == (int)StatusLading.DangTrungChuyen)
-                            || queryLading.Any(o => o.Status == (int)StatusLading.DangTrungChuyen))
-                        {
-                            statusLadingSuccess = (int)StatusLading.DangTrungChuyen;
-                            statusLadingScanned = (int)StatusLading.SBXN;
-                        }
-                        else
-                        {
-                            statusLadingSuccess = (int)StatusLading.DenTrungTamSanBayNhan;
-                            statusLadingScanned = (int)StatusLading.SBXN;
-                        }
-                        break;
-                    case (int)StatusBK.TramNhanBPSBXN:
-                        confirmTo = true;
-                        poConfirm = bkInternal.PostOfficeId.Value;
-
-                        bkInternal.Status = (int)StatusBK.TramNhanDangTrungChuyen;
-                        if (queryPackageOfLading.Any(o => o.StatusId == (int)StatusLading.DenTrungTamSanBayNhan)
-                          || queryLading.Any(o => o.Status == (int)StatusLading.DenTrungTamSanBayNhan))
-                        {
-                            statusLadingSuccess = (int)StatusLading.DenTrungTamSanBayNhan;
-                            statusLadingScanned = (int)StatusLading.SBXN;
-                        }
-                        else
-                        {
-                            statusLadingSuccess = (int)StatusLading.SBXN;
-                            statusLadingScanned = (int)StatusLading.DangTrungChuyen;
-                        }
-                        break;
-                    case (int)StatusBK.TramNhanDangTrungChuyen:
-                        confirmTo = true;
-                        poConfirm = bkInternal.PostOfficeId.Value;
-                        bkInternal.Status = (int)StatusBK.TramNhanDangTrungChuyen;
-                        if (queryPackageOfLading.Any(o => o.StatusId == (int)StatusLading.SBXN)
-                          || queryLading.Any(o => o.Status == (int)StatusLading.SBXN))
-                        {
-                            statusLadingSuccess = (int)StatusLading.SBXN;
-                            statusLadingScanned = (int)StatusLading.DangTrungChuyen;
-                        }
-                        else
-                        {
-                            allowConfirm = false;
-                        }
-                        break;
-                    default:
-                        allowConfirm = false;
-                        break;
-                }
-                if (!allowConfirm)
-                {
-                    return JsonError("Bảng kê không đúng trạng thái");
-                }
-                if (!(await _postOfficeRepository.SameCenter(poConfirm, user.PostOfficeId.Value)))
-                {
-                    return JsonError("Bảng kê này phải được xác nhận bởi nhân viên chịu sự quản lý của TRẠM " + (confirmTo ? "NHẬN" : "GỬI"));
-                }
-                if (!isDelivery)
-                {
-                    var po = await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == user.PostOfficeId.Value);
-                    if (po == null || !(po.IsCenter ?? false)
-                    || !bkInternal.DepartmentConfirmId.HasValue || !bkInternal.JobConfirmId.HasValue || !user.DeparmentID.HasValue || !user.JobId.HasValue ||
-                        (bkInternal.DepartmentConfirmId != user.DeparmentID && bkInternal.JobConfirmId != user.JobId))
-                    {
-                        return JsonError("Bảng kê này phải được xác nhận bởi BỘ PHẬN KHAI THÁC BAY của TRẠM " + (confirmTo ? "NHẬN" : "GỬI"));
-                    }
-                }
-                else
-                {
-                    if (!_officeRepository.IsDelivery(user.OfficerID))
-                    {
-                        return JsonError("Bảng kê này phải được xác nhận bởi BỘ PHẬN GIAO NHẬN của TRẠM " + (confirmTo ? "NHẬN" : "GỬI"));
-                    }
-                }
-
-                var ladingIdExpecteds = queryPackageOfLading.Where(o => o.LadingId.HasValue).GroupBy(o => o.LadingId).Select(o => o.FirstOrDefault().LadingId.Value).ToArray() ?? new int[0];
-                int succeeded = queryPackageOfLading.Count(o => o.StatusId == statusLadingSuccess) + queryLading.Count(o => o.Status == statusLadingSuccess && !ladingIdExpecteds.Contains((int)o.Id));
-                int scanned = queryPackageOfLading.Count(o => o.StatusId == statusLadingScanned) + queryLading.Count(o => o.Status == statusLadingScanned && !ladingIdExpecteds.Contains((int)o.Id));
-                int failed = queryPackageOfLading.Count() + queryLading.Count(o => !ladingIdExpecteds.Contains((int)o.Id)) - succeeded - scanned;
-
-                var ladingIdsSuccess = new List<long>();
-                var packageOfLadingIdsSuccess = new List<int>();
-
-                #region Kiện
-                Parallel.ForEach(packageOfLadingIds, (id) =>
-                {
-                    using (var context = new ApplicationDbContext())
-                    {
-                        var packageOfLadingRepository = new PackageOfLadingRepository(context);
-                        var packageOfLading = packageOfLadingRepository.GetFirst(o => o.Id == id && o.StatusId == statusLadingSuccess);
-                        if (packageOfLading != null)
-                        {
-                            packageOfLading.StatusId = statusLadingScanned;
-                            packageOfLadingRepository.Update(user.OfficerID, user.PostOfficeId ?? 0, packageOfLading).Wait();
-                            packageOfLadingIdsSuccess.Add(id);
-                        }
-                    }
-                });
-                #endregion
-                #region Vận đơn
-                Parallel.ForEach(ladingIds, (id) =>
-               {
-                   using (var context = new ApplicationDbContext())
-                   {
-                       var ladingRepository = new LadingRepository(context);
-                       var lading = ladingRepository.GetFirst(o => o.Id == id && o.Status == statusLadingSuccess);
-                       if (lading != null)
-                       {
-                           lading.Status = statusLadingScanned;
-                           lading.OfficerTransferId = user.OfficerID;
-                           lading.ModifiedBy = user.OfficerID;
-                           ladingRepository.UpdateAndInsertLadingHistory(lading, user);
-                           ladingIdsSuccess.Add(id);
-                       }
-                   }
-               });
-                #endregion
-
-                if (succeeded > 0 || failed == 0)
-                {
-                    bkInternal.IsConfirmByOfficer = true;
-                    bkInternal.OfficerConfirmId = user.OfficerID;
-                    #region Thêm lịch sử bảng kê
-                    var bkhistory = new BKInternalHistory
-                    {
-                        BK_internalId = bkInternal.ID_BK_internal,
-                        CreatedBy = user.OfficerID,
-                        CreatedDate = DateTime.Now,
-                        LadingIds = string.Join("//", ladingIdsSuccess),
-                        PackageOfLadingIds = string.Join("//", packageOfLadingIds),
-                        TotalLading = succeeded,
-                        Status = bkInternal.Status,
-                        Note = "Nhân viên xác nhận"
-                    };
-                    _bkInternalHistoryRepository.Insert(bkhistory);
-                    #endregion
-                    _bkInternalRepository.SaveChanges();
-                    Parallel.ForEach(ladingIdExpecteds, (id) => Task.Factory.StartNew(async () =>
-                   {
-                       using (var context = new ApplicationDbContext())
-                       {
-                           var packageOfLadingRepository = new PackageOfLadingRepository(context);
-                           await packageOfLadingRepository.UpdateIsPartStatusLading((int)id);
-                       }
-                   }));
-                }
-                var result = new
-                {
-                    Success = succeeded,
-                    Fail = failed,
-                    Scanned = scanned
-                };
-                return Json(result);
+                var result = await _bkInternalRepository.Transporting(user.OfficerID, internalCode);
+                return result.Error == 0 ? Json(result.Data) : JsonError(result.Message);
             }
             return JsonError("null");
         }
@@ -354,94 +163,9 @@ namespace NascoWebAPI.Controllers
                 {
                     return JsonError("Mã bảng kê không được bỏ trống");
                 }
-                var bkDelivery = await _bkDeliveryRepository.GetFirstAsync(i => i.Code_BK_Delivery.Equals(deliveryCode) && i.State == 0);
-                if (bkDelivery == null || bkDelivery.ListLadingId.Replace("//", ";").Split(';').ToArray().Length == 0)
-                {
-                    return JsonError("Không tìm thấy bảng kê phát");
-                }
-                var poes = await _postOfficeRepository.GetListFromCenter(bkDelivery.POCreate.Value);
-                if (!poes.Any(o => o.PostOfficeID == user.PostOfficeId))
-                {
-                    return JsonError("Bảng kê phát không thuộc chi nhánh của bạn");
-                }
-                if (bkDelivery.Status == 0 || bkDelivery.Status == 700)
-                {
-                    bkDelivery.Status = 701;//Xác nhận - đang phát
-                    bkDelivery.ModifiedDate = DateTime.Now;
-                    //bkDelivery.ModifiedBy = user.OfficerID;
-                    bkDelivery.OfficerConfirmId = user.OfficerID;
-                    _bkDeliveryRepository.SaveChanges();
-                }
-                var statusLadingScanned = (int)StatusLading.DangPhat;
-                var statusLadingSuccess = (int)StatusLading.XuatKho;
-                var ladingIds = bkDelivery.ListLadingId.Replace("//", ";").Split(';').Select(long.Parse).ToArray();
-                var packageOfLadingIds = new int[0];
-
-                using (var ladingIdExpecteds = new BlockingCollection<int>())
-                {
-                    if (!string.IsNullOrEmpty(bkDelivery.PackageOfLadingIds))
-                    {
-                        packageOfLadingIds = bkDelivery.PackageOfLadingIds.Replace("//", ";").Split(';').Select(int.Parse).ToArray();
-                    }
-                    #region Kiện
-                    Parallel.ForEach(packageOfLadingIds, (id) =>
-                    {
-                        using (var context = new ApplicationDbContext())
-                        {
-                            var packageOfLadingRepository = new PackageOfLadingRepository(context);
-                            var packageOfLading = packageOfLadingRepository.GetFirst(o => o.Id == id && o.StatusId == statusLadingSuccess && o.LadingId.HasValue);
-                            if (packageOfLading != null)
-                            {
-                                packageOfLading.StatusId = statusLadingScanned;
-                                packageOfLading.DeliveryBy = user.OfficerID;
-                                packageOfLadingRepository.Update(user.OfficerID, user.PostOfficeId ?? 0, packageOfLading).Wait();
-                                ladingIdExpecteds.Add(packageOfLading.LadingId.Value);
-                            }
-                        }
-                    });
-                    #endregion
-                    #region Vận đơn
-                    Parallel.ForEach(ladingIds, (id) =>
-                    {
-                        using (var context = new ApplicationDbContext())
-                        {
-                            var ladingRepository = new LadingRepository(context);
-                            var lading = ladingRepository.GetFirst(o => o.Id == id && o.Status == statusLadingSuccess);
-                            if (lading != null)
-                            {
-                                lading.Status = statusLadingScanned;
-                                lading.ModifiedBy = user.OfficerID;
-                                lading.OfficerDelivery = user.OfficerID;
-                                ladingRepository.UpdateAndInsertLadingHistory(lading, user);
-
-                                if (lading.Code.Contains("EMS"))
-                                {
-                                    int cityId = ((lading.Return ?? false) ? lading.CitySendId : lading.CityRecipientId) ?? 0;
-                                    _iEMSService.Delivery(new EMSLadingDeliveryRequest()
-                                    {
-                                        E_CODE = lading.Code,
-                                        DELIVERY_DATE = DateTime.Now,
-                                        CITY = _locationRepository.GetFirst(x => x.LocationId == cityId)?.LocationEMSId + "",
-                                        STATUS = (lading.Return ?? false) ? EMSHelper.LADING_STATUS_ONDELIVERY : EMSHelper.LADING_STATUS_BEINGRETURNING
-                                    });
-                                }
-                            }
-                        }
-                    });
-                    Parallel.ForEach(ladingIdExpecteds, (id) => Task.Factory.StartNew(async () =>
-                    {
-                        using (var context = new ApplicationDbContext())
-                        {
-                            var packageOfLadingRepository = new PackageOfLadingRepository(context);
-                            await packageOfLadingRepository.UpdateIsPartStatusLading((int)id);
-                        }
-                    }));
-                }
-                #endregion
-                var result = new { message = $"Đã quét thành công bảng kê { bkDelivery.Code_BK_Delivery }. Tổng số vận đơn: {bkDelivery.TotalLading} . Tổng kiện: {bkDelivery.TotalNumber}" };
-                return Json(result);
+                var result = await _bkDeliveryRepository.Delivering(user.OfficerID, deliveryCode);
+                return result.Error == 0 ? JsonSuccess(message: result.Message) : JsonError(result.Message);
             }
-
             return JsonError("null");
         }
         [HttpGet("GetByStatus")]
@@ -667,6 +391,7 @@ namespace NascoWebAPI.Controllers
                 {
                     return JsonError("Ðã quá giờ trung chuyển. Vui lòng chọn chuyến khác!");
                 }
+                ladingModel.POFrom = user.PostOfficeId;
                 ladingModel.UpdateServiceOthers();
                 var computed = (await _priceRepository.Computed(ladingModel));
                 if (computed.Error != 0)
@@ -822,6 +547,7 @@ namespace NascoWebAPI.Controllers
                 lading.ExpectedTimeTransfer = ladingModel.ExpectedTimeTransfer ?? DateTime.Now;
                 lading.ExpectedTimeDelivery = ladingModel.ExpectedTimeDelivery;
                 lading.ExpectedTimeTakeOff = ladingModel.ExpectedTimeTakeOff;
+                lading.POMediateId = ladingModel.POMediateId;
                 lading.OrderByService = !ladingModel.OrderByService.HasValue || (ladingModel.OrderByService == 0) ? 1 : (ladingModel.OrderByService ?? 1);
                 if (ladingModel.Status == 1)
                 {
@@ -1074,6 +800,7 @@ namespace NascoWebAPI.Controllers
                 {
                     return JsonError("Đã quá giờ trung chuyển. Vui lòng chọn chuyến khác!");
                 }
+                ladingModel.POFrom = user.PostOfficeId;
                 ladingModel.UpdateServiceOthers();
                 var computed = (await _priceRepository.Computed(ladingModel));
                 if (computed.Error != 0)
@@ -1088,6 +815,7 @@ namespace NascoWebAPI.Controllers
                 ladingModel.PriceMain = computedPrice.ChargeMain;
                 ladingModel.PPXDPercent = computedPrice.ChargeFuel;
                 ladingModel.PriceOther = computedPrice.Surcharge;
+
                 Lading lading = new Lading();
                 var ladingTemp = await _ladingTempRepository.GetFirstAsync(o => o.Id == ladingModel.Id, null, o => o.Coupon);
                 var postOffice = await _postOfficeRepository.GetFirstAsync(o => o.PostOfficeID == user.PostOfficeId);
@@ -1186,9 +914,7 @@ namespace NascoWebAPI.Controllers
                         }
                         #endregion
 
-
                         #region Người nhận
-
                         var recipient = new Recipient();
                         if (ladingModel.RecipientPhone != string.Empty)
                         {
@@ -1247,6 +973,7 @@ namespace NascoWebAPI.Controllers
                         lading.ExpectedTimeTakeOff = ladingModel.ExpectedTimeTakeOff;
                         lading.DistanceTo = ladingModel.DistanceTo;
                         lading.DistanceFrom = ladingModel.DistanceFrom;
+                        lading.POMediateId = ladingModel.POMediateId;
                         lading.OrderByService = !ladingModel.OrderByService.HasValue || (ladingModel.OrderByService == 0) ? 1 : (ladingModel.OrderByService ?? 1);
                         #region [Set PostOffice] 
 
@@ -1471,8 +1198,10 @@ namespace NascoWebAPI.Controllers
                         }
                         if (lading.CopyFromJOject(jsonData))
                         {
+                            var noteUpdate = lading.Noted;
+                            lading.Noted = note;
+                            var statusDeliveris = new int[] { (int)StatusLading.PhatKhongTC, (int)StatusLading.HoanGoc, (int)StatusLading.ThanhCong, (int)StatusLading.DaChuyenHoan };
                             lading.ModifiedBy = user.OfficerID;
-                            //lading.Recipient = null;
                             if ((int)StatusLading.ThanhCong == lading.Status && isReturn)
                             {
                                 lading.Status = (int)StatusLading.DaChuyenHoan;
@@ -1489,10 +1218,7 @@ namespace NascoWebAPI.Controllers
                             {
                                 lading.OfficerDelivery = user.OfficerID;
                             }
-                            else if (lading.Status == (int)StatusLading.PhatKhongTC ||
-                                    lading.Status == (int)StatusLading.HoanGoc ||
-                                    lading.Status == (int)StatusLading.ThanhCong ||
-                                    lading.Status == (int)StatusLading.DaChuyenHoan)
+                            else if (statusDeliveris.Contains(lading.Status ?? 0))
                             {
                                 #region  Kiện
                                 var packageOfLadingIds = _context.PackageOfLadings.Where(o => (o.StatusId == (int)StatusLading.DangPhat || o.StatusId == (int)StatusLading.PhatKhongTC)
@@ -1526,8 +1252,7 @@ namespace NascoWebAPI.Controllers
                                 }
                                 #endregion
                             }
-                            var noteUpdate = lading.Noted;
-                            lading.Noted = note;
+
                             if (statusCurrentId == lading.Status && lading.Status != (int)StatusLading.PhatKhongTC)
                             {
                                 _ladingRepository.Update(lading);
@@ -1536,17 +1261,40 @@ namespace NascoWebAPI.Controllers
                             else
                             {
                                 string location = (string)json.location;
-
+                                int? typeReasonID = (int?)json.typeReasonID;
                                 if (lading.Status == (int)StatusLading.NVKhongNhan || lading.Status == (int)StatusLading.LayHangKhongTC ||
                                     lading.Status == (int)StatusLading.PhatKhongTC)
                                 {
-                                    int? typeReasonID = (int?)json.typeReasonID;
-
                                     _ladingRepository.UpdateAndInsertLadingHistory(lading, user, typeReasonID, location, noteUpdate);
                                 }
                                 else
                                 {
-                                    _ladingRepository.UpdateAndInsertLadingHistory(lading, user, null, location, lading.Noted);
+                                    _ladingRepository.UpdateAndInsertLadingHistory(lading, user, null, location, noteUpdate);
+                                }
+                                if (_customerRepository.Any(x => x.CustomerID == lading.SenderId && x.PartnerId == (int)EMSHelper.PARTNER_ID) && statusDeliveris.Contains(lading.Status ?? 0))
+                                {
+                                    var emsNote = "";
+                                    var reason = "";
+                                    if (lading.Status == (int)StatusLading.PhatKhongTC && typeReasonID.HasValue)
+                                    {
+                                        emsNote = ((lading.TimesDelivery ?? 0) > 1 ? ". Phát không thành công lần " + lading.TimesDelivery + ". " : "");
+                                        var typeReason = _context.TypeReasons.FirstOrDefault(x => x.TypeReasonID == typeReasonID);
+                                        if (typeReason != null)
+                                        {
+                                            reason = typeReason.Code;
+                                            emsNote += ((typeReason.IsText) ? noteUpdate : typeReason.TypeReasonName);
+                                        }
+                                    }
+                                    int cityId = ((lading.Return ?? false) ? lading.CitySendId : lading.CityRecipientId) ?? 0;
+                                    var city = _locationRepository.GetFirst(x => x.LocationId == cityId);
+                                    await _iEMSService.Delivery(new EMSLadingDeliveryRequest(lading.Code, EMSHelper.ConvertToEMSStatus(lading.Status ?? 0, lading.Return ?? false),
+                                       city?.LocationEMSId + "", city?.PostOffficeEMSCode, DateTime.Now, emsNote, reason));
+                                    if (lading.Status == (int)StatusLading.ThanhCong && !string.IsNullOrEmpty(lading.ImageDelivery))
+                                    {
+                                        var path = System.IO.Path.Combine(_env.ContentRootPath + lading.ImageDelivery);
+                                        if (System.IO.File.Exists(path))
+                                            await _iEMSService.DeliveryImage(new EMSLadingDeliveryImageRequest(lading.Code, ImageHelper.ImageToBase64(System.Drawing.Image.FromFile(path), System.Drawing.Imaging.ImageFormat.Jpeg)));
+                                    }
                                 }
                             }
 
@@ -1581,10 +1329,6 @@ namespace NascoWebAPI.Controllers
                             lading.Status = Helper.Helper.GetStatusLadingTemp(lading.Status ?? 0);
                             if ((int)StatusLadingTemp.WaitingPickUp == lading.Status)
                             {
-                                //if (lading.OfficerPickup != user.OfficerID)
-                                //{
-                                //    return JsonError(null);
-                                //}
                                 lading.OfficerPickup = user.OfficerID;
                             }
                             else if (lading.Status == (int)StatusLadingTemp.RefusePickUp || lading.Status == (int)StatusLadingTemp.PickedFail)
@@ -1623,7 +1367,7 @@ namespace NascoWebAPI.Controllers
         #region EMS
         [AllowAnonymous]
         [HttpPost("EMSDelivery")]
-        public async Task<JsonResult> EMSDelivery([FromBody] EMSLadingDeliveryRequest request)
+        public async Task<JsonResult> EMSDelivery([FromBody]EMSLadingDeliveryRequest request)
         {
             return JsonSuccess(await _iEMSService.Delivery(request));
         }

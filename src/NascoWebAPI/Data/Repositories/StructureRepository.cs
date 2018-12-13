@@ -1,4 +1,5 @@
-﻿using NascoWebAPI.Helper.Common;
+﻿using Microsoft.Extensions.Logging;
+using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ namespace NascoWebAPI.Data
 {
     public class StructureRepository : Repository<Structure>, IStructureRepository
     {
-        public StructureRepository(ApplicationDbContext conText) : base(conText)
+        public StructureRepository(ApplicationDbContext context) : base(context)
         {
 
         }

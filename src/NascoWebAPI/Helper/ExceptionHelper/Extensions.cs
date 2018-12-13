@@ -66,5 +66,30 @@ namespace NascoWebAPI.Helper
             }
             return true;
         }
+        public static bool CopyFromOject<T>(this T source, object destination) where T : class
+        {
+            foreach (var jProp in destination.GetType().GetProperties())
+            {
+                foreach (var prop in source.GetType().GetProperties())
+                {
+                    if (prop.Name.ToUpper() == jProp.Name.ToUpper() && prop.GetType().Equals(jProp.GetType()))
+                    {
+                        if (jProp.GetValue(destination) != null && prop.CanWrite)
+                        {
+                            try
+                            {
+                                prop.SetValue(source, jProp.GetValue(destination), null);
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new Exception("Invalid", ex);
+                            }
+                        }
+                    }
+                }
+            }
+            return true;
+        }
     }
 }

@@ -20,5 +20,8 @@ namespace NascoWebAPI.Data
         [Key]
         public int StatusId { get; set; }
         public string StatusName { get; set; }
+        public string StatusCustomerName { get; set; }
+        public bool? IsHiddenCustomer { get; set; }
+
     }
 }

@@ -30,5 +30,6 @@ namespace NascoWebAPI.Data
         public Nullable<int> GSId { get; set; }
         public Nullable<bool> IsPublic { get; set; }
         public Nullable<int> DividendOfVW { get; set; }
+        public bool? IsSendSMS { get; set; }
     }
 }

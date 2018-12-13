@@ -27,5 +27,7 @@ namespace NascoWebAPI.Data
         public string Note { get; set; }
         public Nullable<int> ModifiedBy { get; set; }
         public string Location { get; set; }
+        public double? Lat { get; set; }
+        public double? Lng { get; set; }
     }
 }

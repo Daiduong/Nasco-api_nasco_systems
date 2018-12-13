@@ -145,12 +145,12 @@ namespace NascoWebAPI.Controllers
                     var bks = Enumerable.Empty<BKInternal>();
                     if ((po.PostOfficeTypeId ?? 0) == (int)PostOfficeType.HUB)
                     {
-                        var poIds = (_postOfficeRepository.GetListFromCenter(poCurrentId)).Select(o => o.PostOfficeID);
+                        var poIds = (await _postOfficeRepository.GetListFromCenter(poCurrentId)).Select(o => o.PostOfficeID).ToList();
                         bks = await _bKInternalRepository.GetAsync(o => poIds.Contains(o.POCreate.Value) && o.POCreate.HasValue && o.IsFly.Value && o.Status.Value == (int)StatusFlight.Confirmed, null, null, null, x => x.PostOfficeTo);
                     }
                     if (poId.HasValue)
                     {
-                        var poIds = (_postOfficeRepository.GetListFromCenter(poId.Value)).Select(o => o.PostOfficeID);
+                        var poIds = (await _postOfficeRepository.GetListFromCenter(poId.Value)).Select(o => o.PostOfficeID).ToList();
                         bks = bks.Where(o => poIds.Contains(o.PostOfficeId.Value));
                     }
                     return JsonSuccess(bks);

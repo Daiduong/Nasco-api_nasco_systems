@@ -33,6 +33,8 @@ namespace NascoWebAPI.Data
         public Nullable<int> PostOfficeId { get; set; }
         public string ShortName { get; set; }
         public int? DistrictTypeId { get; set; }
+        public int? LocationEMSId { get; set; }
+        public string PostOffficeEMSCode { get; set; }
         //[NotMapped]
         //public virtual ICollection<Lading> LadingRecipients { get; set; }
         //[NotMapped]

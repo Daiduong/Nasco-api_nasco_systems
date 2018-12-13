@@ -90,5 +90,13 @@ namespace NascoWebAPI.Controllers
             return Json(new { Services = services, GroupServices = groupServices });
         }
         #endregion
+
+        [HttpGet("GetListServiceHTAT")]
+        [AllowAnonymous]
+        public async Task<JsonResult> GetListServiceHTAT()
+        {
+            var result = await _serviceRepository.GetAsync(o=> o.ServiceCode.StartsWith("HTAT"));
+            return JsonSuccess(result);
+        }
     }
 }

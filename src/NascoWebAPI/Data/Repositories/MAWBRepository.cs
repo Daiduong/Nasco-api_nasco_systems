@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
@@ -10,7 +11,7 @@ namespace NascoWebAPI.Data
 {
     public class MAWBRepository : Repository<MAWB>, IMAWBRepository
     {
-        public MAWBRepository(ApplicationDbContext conText) : base(conText)
+        public MAWBRepository(ApplicationDbContext context) : base(context)
         {
 
         }
@@ -38,6 +39,7 @@ namespace NascoWebAPI.Data
                 var currentPO = officer.PostOffice;
                 var currentUserId = officer.OfficerID;
                 var now = DateTime.Now;
+                string flightNumberOld = null;
                 if (string.IsNullOrEmpty(model.MAWBCode))
                 {
                     return result.Init(message: "Vui lòng nhập mã AWB");
@@ -81,6 +83,10 @@ namespace NascoWebAPI.Data
                     {
                         return result.Init(message: "Vui lòng nhập lý do điều chỉnh.");
                     }
+                    if (obj.FlightNumber != model.FlightNumber)
+                    {
+                        flightNumberOld = obj.FlightNumber;
+                    }
                 }
                 else
                 {
@@ -111,6 +117,15 @@ namespace NascoWebAPI.Data
                 else
                     this.Update(obj);
                 this.SaveChanges();
+                if (!(obj.IsNew ?? true) && !string.IsNullOrEmpty(flightNumberOld))
+                {
+                    var flightId = _context.Flights.FirstOrDefault(y => y.MAWBId == obj.Id)?.Id;
+                    await _context.Ladings.Where(x => x.FlightId == flightId)
+                        .Join(_context.LadingHistories.Where(x => x.Status == (int)StatusLading.TaoChuyenBay && x.Note.Contains(flightNumberOld)),
+                        x => x.Id, y => y.LadingId, (x, y) => y)
+                        .ForEachAsync(x => { x.Note = x.Note.Replace(flightNumberOld, obj.FlightNumber); });
+                    this.SaveChanges();
+                }
                 result.Error = 0;
                 result.Message = edit ? "Cập nhật lịch bay thành công" : "Thêm lịch bay thành công";
                 result.Data = obj;

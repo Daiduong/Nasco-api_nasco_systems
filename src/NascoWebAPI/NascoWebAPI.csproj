@@ -9,6 +9,7 @@
     <UserSecretsId>aspnet-NascoWebAPI-a98cba58-fe0b-4c04-9ce2-21368a151a18</UserSecretsId>
     <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
     <PackageTargetFallback>$(PackageTargetFallback);dotnet5.6;portable-net45+win8</PackageTargetFallback>
+    <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
 
   <ItemGroup>

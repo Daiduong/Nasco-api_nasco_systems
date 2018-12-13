@@ -98,6 +98,9 @@ namespace NascoWebAPI
         public virtual DbSet<TimeLinePostOfficeLevel> TimeLinePostOfficeLevels { get; set; }
         public virtual DbSet<Airline> Airlines { get; set; }
         public virtual DbSet<Reason> Reasons { get; set; }
+        public virtual DbSet<CustomerContact> CustomerContacts { get; set; }
+        public virtual DbSet<Package> Packages { get; set; }
+        public virtual DbSet<PackageHistory> PackageHistories { get; set; }
 
         #region View
         public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }

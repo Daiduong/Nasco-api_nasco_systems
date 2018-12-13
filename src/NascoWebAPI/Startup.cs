@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using NascoWebAPI.Models.JwtModels;
 using System.Net.Http.Formatting;
 using Newtonsoft.Json.Serialization;
+using NascoWebAPI.Helper.Logger;
 
 namespace NascoWebAPI
 {
@@ -82,8 +83,9 @@ namespace NascoWebAPI
                                             .WriteTo.RollingFile(Path.Combine(env.ContentRootPath, $"logs\\{env.EnvironmentName.ToLowerInvariant()}-log-{ DateTime.Now.ToString("dd-MM-yyyy") }.txt"))
                                             .CreateLogger();
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
-            loggerFactory.AddSerilog();
+            ApplicationLogging.ConfigureLogger(loggerFactory);
+            ApplicationLogging.LoggerFactory = loggerFactory;
+
             app.UseApplicationInsightsRequestTelemetry();
 
             if (env.IsDevelopment())
@@ -91,13 +93,12 @@ namespace NascoWebAPI
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
                 app.UseBrowserLink();
-                loggerFactory.AddDebug(LogLevel.Information);
             }
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                loggerFactory.AddDebug(LogLevel.Error);
             }
+     
             app.UseCors(builder =>
             {
                 builder.AllowAnyOrigin();

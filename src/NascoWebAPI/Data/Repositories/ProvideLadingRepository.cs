@@ -1,4 +1,5 @@
-﻿using NascoWebAPI.Helper.Common;
+﻿using Microsoft.Extensions.Logging;
+using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;

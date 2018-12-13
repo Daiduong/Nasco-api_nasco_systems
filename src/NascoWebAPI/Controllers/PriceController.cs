@@ -41,11 +41,12 @@ namespace NascoWebAPI.Controllers
             {
                 return JsonError("Not Empty");
             }
+            ladingModel.UpdateServiceOthers();
             var result = await _PriceRepository.Computed(ladingModel);
-            return Json(new CalculatePriceModel(result.Data)
+            return Json(result.Error == 0 ? new CalculatePriceModel(result.Data)
             {
                 Message = result.Message
-            });
+            }: new CalculatePriceModel());
         }
         [AllowAnonymous]
         [HttpPost("GetListPrice")]

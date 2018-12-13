@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NascoWebAPI.Helper;
 using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
@@ -90,9 +91,6 @@ namespace NascoWebAPI.Data
                             }
                             else
                             {
-                                flight.MAWB.WeightConfirm = model.WeightConfirm;
-                                flight.MAWB.RealDateTime = model.RealDateTime ?? new DateTime();
-                                flight.FlightStatus = (int)StatusFlight.TakeOff;
 
                                 var officer = _context.Set<Officer>().Include(o => o.PostOffice).Single(o => o.OfficerID == model.ModifiedBy);
                                 if (officer.PostOffice == null)
@@ -103,69 +101,81 @@ namespace NascoWebAPI.Data
                                 {
                                     var currentUserId = officer.OfficerID;
                                     var currentPOId = officer.PostOfficeId ?? 0;
+                                    var currentPO = officer.PostOffice;
                                     var statusUpdate = (int)StatusLading.RoiTrungTamBay;
                                     var statusRollbacks = new int[] { (int)StatusLading.TaoChuyenBay };
+                                    var ladingPartIds = new List<long>();
+
+                                    flight.MAWB.WeightConfirm = model.WeightConfirm;
+                                    flight.MAWB.RealDateTime = model.RealDateTime ?? new DateTime();
+                                    flight.FlightStatus = (int)StatusFlight.TakeOff;
+                                    flight.TookOffBy = currentUserId;
 
                                     var bkinternals = _context.BKInternals.Where(o => o.FlightId == flight.Id).ToList();
-                                    bkinternals.ForEach(bkinternal =>
+                                    using (var packageOfLadingHistories = new BlockingCollection<PackageOfLadingHistory>())
+                                    using (var ladingHistories = new BlockingCollection<LadingHistory>())
+                                    using (var packageHistories = new BlockingCollection<PackageHistory>())
+                                    using (var ladingToPartnerIds = new BlockingCollection<KeyValuePair<int, int>>())
                                     {
-                                        bkinternal.Status = (int)StatusFlight.TakeOff;
-                                        var ladingIds = new int[0];
-                                        var packageOfLadingIds = new int[0];
-                                        if (!string.IsNullOrEmpty(bkinternal.ListLadingId))
+                                        var customerIdHasPartners = await (new CustomerRepository(_context)).GetListIdHasParner();
+
+                                        foreach (var bkinternal in bkinternals)
                                         {
-                                            ladingIds = bkinternal.ListLadingId.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
-                                        }
-                                        if (!string.IsNullOrEmpty(bkinternal.PackageOfLadingIds))
-                                        {
-                                            packageOfLadingIds = bkinternal.PackageOfLadingIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
-                                        }
-                                        #region Kiện
-                                        Parallel.ForEach(packageOfLadingIds, (_id) =>
-                                        {
-                                            using (var context = new ApplicationDbContext())
+                                            bkinternal.Status = (int)StatusFlight.TakeOff;
+                                            var ladingIds = new long[0];
+                                            var packageOfLadingIds = new int[0];
+                                            var packageIds = new int[0];
+
+                                            if (!string.IsNullOrEmpty(bkinternal.ListLadingId))
                                             {
-                                                var packageOfLadingRepository = new PackageOfLadingRepository(context);
-                                                var packageOfLading = packageOfLadingRepository.GetFirst(o => _id == o.Id && o.State == 0);
-                                                if (packageOfLading != null)
-                                                {
-                                                    packageOfLading.StatusId = statusUpdate;
-                                                    packageOfLadingRepository.Update(currentUserId, currentPOId, packageOfLading).Wait();
-                                                }
+                                                ladingIds = bkinternal.ListLadingId.Replace("//", ",").Split(',').Select(long.Parse).ToArray();
+                                                ladingPartIds.AddRange(ladingIds);
                                             }
-                                        });
-                                        #endregion
-                                        #region Vận đơn
-                                        Parallel.ForEach(ladingIds, (_id) =>
-                                        {
-                                            using (var context = new ApplicationDbContext())
+                                            if (!string.IsNullOrEmpty(bkinternal.PackageOfLadingIds))
                                             {
-                                                var ladingRepository = new LadingRepository(context);
-                                                var lading = ladingRepository.GetFirst(o => _id == o.Id && statusRollbacks.Contains(o.Status.Value));
-                                                if (lading != null)
-                                                {
-                                                    lading.Status = statusUpdate;
-                                                    lading.ModifiedBy = currentUserId;
-                                                    lading.ModifiedDate = DateTime.Now;
-                                                    lading.POCurrent = currentPOId;
-                                                    ladingRepository.SaveChanges();
-                                                    LadingHistory ladingHistory = new LadingHistory
-                                                    {
-                                                        CreatedDate = DateTime.Now,
-                                                        DateTime = model.RealDateTime ?? new DateTime(),
-                                                        LadingId = lading.Id,
-                                                        Location = officer.PostOffice.POName,
-                                                        OfficerId = currentUserId,
-                                                        PostOfficeId = currentPOId,
-                                                        Status = statusUpdate
-                                                    };
-                                                    context.LadingHistories.Add(ladingHistory);
-                                                    context.SaveChanges();
-                                                }
+                                                packageOfLadingIds = bkinternal.PackageOfLadingIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
                                             }
-                                        });
-                                        #endregion
-                                        Parallel.ForEach(ladingIds, (_id) => Task.Factory.StartNew(async () =>
+                                            if (!string.IsNullOrEmpty(bkinternal.PackageIds))
+                                            {
+                                                packageIds = bkinternal.PackageIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                                            }
+                                            #region Kiện
+                                            var packageOfLadings = _context.PackageOfLadings.Where(o => packageOfLadingIds.Contains(o.Id) && o.State == 0);
+                                            await packageOfLadings.ForEachAsync(x =>
+                                            {
+                                                EntityHelper.UpdatePackageOfLading(x, currentUserId, currentPOId, statusUpdate);
+                                                var packageOfLadingHistory = EntityHelper.GetPackageOfLadingHistory(currentUserId, currentPOId, x.Id, x.StatusId ?? 0, officer.Lat, officer.Lng, currentPO.POName);
+                                                packageOfLadingHistories.Add(packageOfLadingHistory);
+                                            });
+                                            #endregion
+                                            #region Vận đơn
+                                            var ladings = _context.Ladings.Where(o => ladingIds.Contains(o.Id) && statusRollbacks.Contains(o.Status.Value));
+                                            await ladings.ForEachAsync(x =>
+                                            {
+                                                EntityHelper.UpdateLading(x, currentUserId, currentPOId, statusUpdate);
+                                                var ladingHistory = EntityHelper.GetLadingHistory(currentUserId, currentPOId, x.Id, x.Status ?? 0, officer.LatDynamic, officer.LngDynamic, currentPO.POName, model.RealDateTime ?? DateTime.Now);
+                                                ladingHistories.Add(ladingHistory);
+                                                if (x.SenderId.HasValue && customerIdHasPartners.Contains(x.SenderId.Value)) ladingToPartnerIds.Add(new KeyValuePair<int, int>((int)x.Id, x.SenderId ?? 0));
+                                            });
+                                            #endregion
+                                            #region Gói
+                                            var packages = _context.Packages.Where(o => packageIds.Contains(o.PackageID));
+                                            await packages.ForEachAsync(x =>
+                                            {
+                                                EntityHelper.UpdatePackage(x, currentUserId, currentPOId, EntityHelper.ConvertToPackageStatus(statusUpdate));
+                                                var packageHistory = EntityHelper.GetPackageHistory(currentUserId, currentPOId, x.PackageID, x.Status ?? 0, x.LadingIDs, x.TotalLading, x.TotalNumber, x.TotalWeight);
+                                                packageHistories.Add(packageHistory);
+                                            });
+                                            #endregion
+
+                                        }
+                                        _context.LadingHistories.AddRange(ladingHistories);
+                                        _context.PackageOfLadingHistories.AddRange(packageOfLadingHistories);
+                                        _context.PackageHistories.AddRange(packageHistories);
+
+                                        this.SaveChanges();
+
+                                        Parallel.ForEach(ladingPartIds, (_id) => Task.Factory.StartNew(async () =>
                                         {
                                             using (var context = new ApplicationDbContext())
                                             {
@@ -173,8 +183,17 @@ namespace NascoWebAPI.Data
                                                 await packageOfLadingRepository.UpdateIsPartStatusLading((int)_id);
                                             }
                                         }));
-                                    });
-                                    this.SaveChanges();
+                                        #region Partners
+                                        Parallel.ForEach(ladingToPartnerIds, (keyValue) => Task.Factory.StartNew(async () =>
+                                        {
+                                            using (var context = new ApplicationDbContext())
+                                            {
+                                                var ladingRepository = new LadingRepository(context);
+                                                await ladingRepository.UpdateToPartner(keyValue.Value, keyValue.Key, currentPOId, statusUpdate, model.RealDateTime);
+                                            }
+                                        }));
+                                        #endregion
+                                    }
                                     result.Error = 0;
                                     result.Message = "Rời sân bay thành công";
                                     result.Data = flight;
@@ -215,73 +234,79 @@ namespace NascoWebAPI.Data
                             }
                             else
                             {
-                                flight.MAWB.ReceivedRealDateTime = model.ReceivedRealDateTime ?? new DateTime();
-                                flight.FlightStatus = (int)StatusFlight.Landing;
                                 var currentUserId = officer.OfficerID;
                                 var currentPOId = officer.PostOfficeId ?? 0;
+                                var currentPO = officer.PostOffice;
                                 var statusUpdate = (int)StatusLading.DenTrungTamSanBayNhan;
                                 var statusRollbacks = new int[] { (int)StatusLading.RoiTrungTamBay };
+                                var ladingPartIds = new List<long>();
+
+                                flight.MAWB.ReceivedRealDateTime = model.ReceivedRealDateTime ?? new DateTime();
+                                flight.FlightStatus = (int)StatusFlight.Landing;
+                                flight.ReceivedBy = currentUserId;
 
                                 var bkinternals = _context.BKInternals.Where(o => o.FlightId == flight.Id).ToList();
-                                bkinternals.ForEach(bkinternal =>
+                                using (var packageOfLadingHistories = new BlockingCollection<PackageOfLadingHistory>())
+                                using (var ladingHistories = new BlockingCollection<LadingHistory>())
+                                using (var packageHistories = new BlockingCollection<PackageHistory>())
+                                using (var ladingToPartnerIds = new BlockingCollection<KeyValuePair<int, int>>())
                                 {
-                                    bkinternal.Status = (int)StatusFlight.Landing;
-                                    var ladingIds = new int[0];
-                                    var packageOfLadingIds = new int[0];
-                                    if (!string.IsNullOrEmpty(bkinternal.ListLadingId))
+                                    var customerIdHasPartners = await (new CustomerRepository(_context)).GetListIdHasParner();
+                                    foreach (var bkinternal in bkinternals)
                                     {
-                                        ladingIds = bkinternal.ListLadingId.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
-                                    }
-                                    if (!string.IsNullOrEmpty(bkinternal.PackageOfLadingIds))
-                                    {
-                                        packageOfLadingIds = bkinternal.PackageOfLadingIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
-                                    }
-                                    #region Kiện
-                                    Parallel.ForEach(packageOfLadingIds, (_id) =>
-                                    {
-                                        using (var context = new ApplicationDbContext())
+                                        bkinternal.Status = (int)StatusFlight.Landing;
+                                        var ladingIds = new long[0];
+                                        var packageOfLadingIds = new int[0];
+                                        var packageIds = new int[0];
+
+                                        if (!string.IsNullOrEmpty(bkinternal.ListLadingId))
                                         {
-                                            var packageOfLadingRepository = new PackageOfLadingRepository(context);
-                                            var packageOfLading = packageOfLadingRepository.GetFirst(o => _id == o.Id && o.State == 0);
-                                            if (packageOfLading != null)
-                                            {
-                                                packageOfLading.StatusId = statusUpdate;
-                                                packageOfLadingRepository.Update(currentUserId, currentPOId, packageOfLading).Wait();
-                                            }
+                                            ladingIds = bkinternal.ListLadingId.Replace("//", ",").Split(',').Select(long.Parse).ToArray();
+                                            ladingPartIds.AddRange(ladingIds);
                                         }
-                                    });
-                                    #endregion
-                                    #region Vận đơn
-                                    Parallel.ForEach(ladingIds, (_id) =>
-                                    {
-                                        using (var context = new ApplicationDbContext())
+                                        if (!string.IsNullOrEmpty(bkinternal.PackageOfLadingIds))
                                         {
-                                            var ladingRepository = new LadingRepository(context);
-                                            var lading = ladingRepository.GetFirst(o => _id == o.Id && statusRollbacks.Contains(o.Status.Value));
-                                            if (lading != null)
-                                            {
-                                                lading.Status = statusUpdate;
-                                                lading.ModifiedBy = currentUserId;
-                                                lading.ModifiedDate = DateTime.Now;
-                                                lading.POCurrent = currentPOId;
-                                                ladingRepository.SaveChanges();
-                                                LadingHistory ladingHistory = new LadingHistory
-                                                {
-                                                    CreatedDate = DateTime.Now,
-                                                    DateTime = model.ReceivedRealDateTime ?? new DateTime(),
-                                                    LadingId = lading.Id,
-                                                    Location = officer.PostOffice.POName,
-                                                    OfficerId = currentUserId,
-                                                    PostOfficeId = currentPOId,
-                                                    Status = statusUpdate
-                                                };
-                                                context.LadingHistories.Add(ladingHistory);
-                                                context.SaveChanges();
-                                            }
+                                            packageOfLadingIds = bkinternal.PackageOfLadingIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
                                         }
-                                    });
-                                    #endregion
-                                    Parallel.ForEach(ladingIds, (_id) => Task.Factory.StartNew(async () =>
+                                        if (!string.IsNullOrEmpty(bkinternal.PackageIds))
+                                        {
+                                            packageIds = bkinternal.PackageIds.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                                        }
+                                        #region Kiện
+                                        var packageOfLadings = _context.PackageOfLadings.Where(o => packageOfLadingIds.Contains(o.Id) && o.State == 0);
+                                        await packageOfLadings.ForEachAsync(x =>
+                                        {
+                                            EntityHelper.UpdatePackageOfLading(x, currentUserId, currentPOId, statusUpdate);
+                                            var packageOfLadingHistory = EntityHelper.GetPackageOfLadingHistory(currentUserId, currentPOId, x.Id, x.StatusId ?? 0, officer.Lat, officer.Lng, currentPO.POName);
+                                            packageOfLadingHistories.Add(packageOfLadingHistory);
+                                        });
+                                        #endregion
+                                        #region Vận đơn
+                                        var ladings = _context.Ladings.Where(o => ladingIds.Contains(o.Id) && statusRollbacks.Contains(o.Status.Value));
+                                        await ladings.ForEachAsync(x =>
+                                        {
+                                            EntityHelper.UpdateLading(x, currentUserId, currentPOId, statusUpdate);
+                                            var ladingHistory = EntityHelper.GetLadingHistory(currentUserId, currentPOId, x.Id, x.Status ?? 0, officer.LatDynamic, officer.LngDynamic, currentPO.POName, model.ReceivedRealDateTime ?? DateTime.Now);
+                                            ladingHistories.Add(ladingHistory);
+                                            if (x.SenderId.HasValue && customerIdHasPartners.Contains(x.SenderId.Value)) ladingToPartnerIds.Add(new KeyValuePair<int, int>((int)x.Id, x.SenderId ?? 0));
+                                        });
+                                        #endregion
+                                        #region Gói
+                                        var packages = _context.Packages.Where(o => packageIds.Contains(o.PackageID));
+                                        await packages.ForEachAsync(x =>
+                                        {
+                                            EntityHelper.UpdatePackage(x, currentUserId, currentPOId, EntityHelper.ConvertToPackageStatus(statusUpdate, false));
+                                            var packageHistory = EntityHelper.GetPackageHistory(currentUserId, currentPOId, x.PackageID, x.Status ?? 0, x.LadingIDs, x.TotalLading, x.TotalNumber, x.TotalWeight);
+                                            packageHistories.Add(packageHistory);
+                                        });
+                                        #endregion
+                                    }
+                                    _context.LadingHistories.AddRange(ladingHistories);
+                                    _context.PackageOfLadingHistories.AddRange(packageOfLadingHistories);
+                                    _context.PackageHistories.AddRange(packageHistories);
+
+                                    this.SaveChanges();
+                                    Parallel.ForEach(ladingPartIds, (_id) => Task.Factory.StartNew(async () =>
                                     {
                                         using (var context = new ApplicationDbContext())
                                         {
@@ -289,11 +314,20 @@ namespace NascoWebAPI.Data
                                             await packageOfLadingRepository.UpdateIsPartStatusLading((int)_id);
                                         }
                                     }));
-                                });
-                                this.SaveChanges();
-                                result.Error = 0;
-                                result.Message = "Nhận hàng bay thành công";
-                                result.Data = flight;
+                                    #region Partners
+                                    Parallel.ForEach(ladingToPartnerIds, (keyValue) => Task.Factory.StartNew(async () =>
+                                    {
+                                        using (var context = new ApplicationDbContext())
+                                        {
+                                            var ladingRepository = new LadingRepository(context);
+                                            await ladingRepository.UpdateToPartner(keyValue.Value, keyValue.Key, currentPOId, statusUpdate, model.ReceivedRealDateTime);
+                                        }
+                                    }));
+                                    #endregion
+                                    result.Error = 0;
+                                    result.Message = "Nhận hàng bay thành công";
+                                    result.Data = flight;
+                                }
                             }
                         }
                         else result.Message = $"Không thể nhận hàng do chuyến bay hiện { flight.Status.StatusName }";
@@ -377,6 +411,9 @@ namespace NascoWebAPI.Data
                         }
                     }
                 }
+                else if (!(mawb.IsNew ?? true))
+                    return result.Init(message: "Lịch bay đã được sử dụng");
+
                 flight.State = 1;
                 flight.TotalPackage = bkInternalIds.Count();
                 flight.TotalWeight = Math.Round(_context.BKInternals.Where(x => bkInternalIds.Contains(x.ID_BK_internal)).Select(x => x.TotalWeight).Sum() ?? 0, 1);
@@ -401,22 +438,25 @@ namespace NascoWebAPI.Data
                     this.SaveChanges();
                     flight.FlightCode = "AIR" + Helper.Helper.GetCodeWithMinLegth(flight.Id, 6);
                 }
-                var ladingIdJoineds = new List<int>();
-                #region Bảng kê mới
+                var ladingIdJoineds = new List<long>();
+
                 var bkInternalNews = _context.BKInternals.Where(o => o.State == 0 && bkInternalIdNews.Contains(o.ID_BK_internal));
+                var bkInternalDels = _context.BKInternals.Where(o => o.State == 0 && bkInternalIdDels.Contains(o.ID_BK_internal));
+
                 using (var packageOfLadingHistories = new BlockingCollection<PackageOfLadingHistory>())
                 using (var ladingHistories = new BlockingCollection<LadingHistory>())
                 {
+                    #region Bảng kê mới
                     foreach (var bkInternal in bkInternalNews)
                     {
                         bkInternal.Status = (int)StatusBK.ChuyenBayMoiTao;
                         bkInternal.FlightId = flight.Id;
 
-                        var ladingIds = new int[0];
+                        var ladingIds = new long[0];
                         var packageOfLadingIds = new int[0];
                         if (!string.IsNullOrEmpty(bkInternal.ListLadingId))
                         {
-                            ladingIds = bkInternal.ListLadingId.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                            ladingIds = bkInternal.ListLadingId.Replace("//", ",").Split(',').Select(long.Parse).ToArray();
                             ladingIdJoineds.AddRange(ladingIds);
                         }
                         if (!string.IsNullOrEmpty(bkInternal.PackageOfLadingIds))
@@ -448,19 +488,19 @@ namespace NascoWebAPI.Data
                         });
                         #endregion
                         #region Vận đơn
-                        var ladings = _context.Ladings.Where(x => x.State == 0 && ladingIds.Contains((int)x.Id));
-                        await ladings.ForEachAsync(lading =>
+                        var ladings = _context.Ladings.Where(x => x.State == 0 && ladingIds.Contains(x.Id));
+                        await ladings.ForEachAsync(x =>
                         {
-                            lading.Status = statusUpdate;
-                            lading.FlightId = flight.Id;
-                            lading.ModifiedBy = currentUserId;
-                            lading.ModifiedDate = now;
-                            lading.POCurrent = currentPOId;
+                            x.Status = statusUpdate;
+                            x.FlightId = flight.Id;
+                            x.ModifiedBy = currentUserId;
+                            x.ModifiedDate = now;
+                            x.POCurrent = currentPOId;
                             LadingHistory ladingHistory = new LadingHistory
                             {
                                 CreatedDate = now,
                                 DateTime = now,
-                                LadingId = lading.Id,
+                                LadingId = x.Id,
                                 Location = officer.PostOffice.POName,
                                 OfficerId = currentUserId,
                                 PostOfficeId = currentPOId,
@@ -473,17 +513,16 @@ namespace NascoWebAPI.Data
                     }
                     #endregion
                     #region Bảng kê cũ
-                    var bkInternalDels = _context.BKInternals.Where(o => o.State == 0 && bkInternalIdDels.Contains(o.ID_BK_internal));
                     foreach (var bkInternal in bkInternalDels)
                     {
                         bkInternal.Status = (int)StatusBK.TramGuiBPSBXN;
                         bkInternal.FlightId = null;
                         //update lading
-                        var ladingIds = new int[0];
+                        var ladingIds = new long[0];
                         var packageOfLadingIds = new int[0];
                         if (!string.IsNullOrEmpty(bkInternal.ListLadingId))
                         {
-                            ladingIds = bkInternal.ListLadingId.Replace("//", ",").Split(',').Select(int.Parse).ToArray();
+                            ladingIds = bkInternal.ListLadingId.Replace("//", ",").Split(',').Select(long.Parse).ToArray();
                             ladingIdJoineds.AddRange(ladingIds);
                         }
                         if (!string.IsNullOrEmpty(bkInternal.PackageOfLadingIds))
@@ -515,7 +554,7 @@ namespace NascoWebAPI.Data
                         });
                         #endregion
                         #region Vận đơn
-                        var ladings = _context.Ladings.Where(x => x.State == 0 && ladingIds.Contains((int)x.Id));
+                        var ladings = _context.Ladings.Where(x => x.State == 0 && ladingIds.Contains(x.Id));
                         await ladings.ForEachAsync(lading =>
                         {
                             lading.Status = statusRollbacks[0];

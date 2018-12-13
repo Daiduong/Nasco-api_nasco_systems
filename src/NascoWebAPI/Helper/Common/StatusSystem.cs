@@ -361,4 +361,37 @@ namespace NascoWebAPI.Helper.Common
         DC_VP,
         DC_DC
     }
+    public enum StructureType
+    {
+        DOCUMENT = 14,
+        GOODS = 50
+    }
+    public enum StatusFlight
+    {
+        Created = 100,
+        TakeOff,
+        Landing,
+        Cancel,
+        Confirmed = 105,
+    }
+    public enum StatusPackage
+    {
+        Packaged = 401,
+        WaitingDepartureFromPO,
+        DepartureFromPO,
+        ConfirmByAirportDPF,
+        AllowedToFlight,
+        TakeOff,
+        Landing,
+        ConfirmByAirportDPT,
+        WaitingArrivalAtPO,
+        ArrivalAtPO,
+        Unpacked,
+        Cancel
+    }
+    public enum LocationEnum
+    {
+        HAN = 1,
+        SGN = 50
+    }
 }

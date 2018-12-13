@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace NascoWebAPI.Utils
+namespace NascoWebAPI.Helper
 {
     public static class GoogleMapHelper
     {
@@ -18,5 +18,9 @@ namespace NascoWebAPI.Utils
         public static string STATUS_INVALID_REQUEST = "INVALID_REQUEST";
         public static string STATUS_UNKNOWN_ERROR = "UNKNOWN_ERROR";
         public static string STATUS_ERROR = "ERROR";
+
+
+        public static string TRAVEL_MODE_DRIVING = "driving";
+        public static string TRAVEL_MODE_WALKING = "walking";
     }
 }

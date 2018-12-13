@@ -50,6 +50,10 @@ namespace NascoWebAPI
             services.AddScoped<IAirlineRepository, AirlineRepository>();
             services.AddScoped<IMAWBRepository, MAWBRepository>();
             services.AddScoped<IReasonRepository, ReasonRepository>();
+            services.AddScoped<IEMSClient, EMSClient>();
+            services.AddScoped<IEMSService, EMSService>();
+            services.AddScoped<ICustomerContactRepository, CustomerContactRepository>();
+            services.AddScoped<IFahamiClient, FahamiClient>();
 
         }
     }

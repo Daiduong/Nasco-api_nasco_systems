@@ -1,4 +1,5 @@
-﻿using NascoWebAPI.Helper.Common;
+﻿using Microsoft.Extensions.Logging;
+using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace NascoWebAPI.Data
 {
     public class TypeOfPackRepository : Repository<TypeOfPack>, ITypeOfPackRepository
     {
-        public TypeOfPackRepository(ApplicationDbContext conText) : base(conText)
+        public TypeOfPackRepository(ApplicationDbContext context) : base(context)
         {
 
         }

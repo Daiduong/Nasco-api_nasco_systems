@@ -21,7 +21,7 @@ namespace NascoWebAPI.Data
         public Nullable<int> AirlineId { get; set; }
         public Nullable<System.DateTime> ExpectedDateTime { get; set; }
         public Nullable<System.DateTime> RealDateTime { get; set; }
-        public Nullable<int> MaxWeight { get; set; }
+        public double? MaxWeight { get; set; }
         public Nullable<bool> IsNew { get; set; }
         public Nullable<System.DateTime> CreatedDate { get; set; }
         public string FlightNumber { get; set; }

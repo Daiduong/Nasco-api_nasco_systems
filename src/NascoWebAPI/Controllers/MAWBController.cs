@@ -107,7 +107,7 @@ namespace NascoWebAPI.Controllers
                     if ((pageSize ?? 0) >= 0 && (pageNo ?? 0) >= 1)
                         skip = ((pageNo ?? 0) - 1) * (pageSize ?? 0);
 
-                    return JsonSuccess(await _mAWBRepository.GetAsync(predicate, null, skip, take, x => x.PoFromObj, x => x.PoToObj));
+                    return JsonSuccess(await _mAWBRepository.GetAsync(predicate, null, skip, take, x=> x.Airline, x => x.PoFromObj, x => x.PoToObj));
                 }
                 return JsonError("Nhân viên phải thuộc bộ phận KHAI THÁC BAY");
             }

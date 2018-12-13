@@ -20,5 +20,6 @@ namespace NascoWebAPI.Data
         public string StructureCode { get; set; }
         public string StructureName { get; set; }
         public Nullable<bool> IsHighValue { get; set; }
+        public int? State { get; set; }
     }
 }

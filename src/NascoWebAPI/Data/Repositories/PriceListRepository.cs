@@ -1,4 +1,5 @@
-﻿using NascoWebAPI.Helper.Common;
+﻿using Microsoft.Extensions.Logging;
+using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ namespace NascoWebAPI.Data
 {
     public class PriceListRepository : Repository<PriceList>, IPriceListRepository
     {
-        public PriceListRepository(ApplicationDbContext conText) : base(conText)
+        public PriceListRepository(ApplicationDbContext context) : base(context)
         {
 
         }

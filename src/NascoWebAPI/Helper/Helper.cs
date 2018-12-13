@@ -25,7 +25,18 @@ namespace NascoWebAPI.Helper
             else
                 return value.ToString();
         }
-
+        public static IEnumerable<T> Traverse<T>(this T root, Func<T, IEnumerable<T>> childSelector)
+        {
+            var stack = new Stack<T>();
+            stack.Push(root);
+            while (stack.Any())
+            {
+                var next = stack.Pop();
+                yield return next;
+                foreach (var child in childSelector(next))
+                    stack.Push(child);
+            }
+        }
         public static IEnumerable<T> GetValues<T>()
         {
             return Enum.GetValues(typeof(T)).Cast<T>();

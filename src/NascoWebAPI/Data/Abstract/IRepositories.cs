@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
 using System.Collections.Generic;
@@ -19,12 +20,15 @@ namespace NascoWebAPI.Data
     {
         void InsertAndInsertLadingHistory(Lading entity);
         void UpdateAndInsertLadingHistory(Lading entity, Officer currentUser, int? typeReasonID = null, string location = null, string note = "");
-        Task<IEnumerable<Lading>> GetPickUpAsync(Officer officer);
         Task<LadingHistory> GetLastLadingHistoryAsync(long ladingId);
         Task<IEnumerable<Lading>> GetLadingReport(int officerID, int reportType);
         Task<double> GetSumLadingReport(int officerID, int reportType);
         string CodeGenerationByLocationCode(int locationId, int id);
         bool EqualsCode(string code);
+
+        Task<ResultModel<Lading>> InsertEMS(int currentUserId, int customerContactId, int serviceId, string code, int statusId = (int)StatusLading.DaLayHang);
+        Task<ResultModel<dynamic>> UpdateEMS();
+        Task<ResultModel<dynamic>> UpdateToPartner(int partnerId, int ladingId, int poCurrentId, int statusId, DateTime? datetime);
     }
     public interface ILadingHistoryRepository : IRepository<LadingHistory>
     {
@@ -34,6 +38,7 @@ namespace NascoWebAPI.Data
     public interface IBKInternalRepository : IRepository<BKInternal>
     {
         Task<IEnumerable<BKInternal>> GetListWaitingByOfficer(int officerID, params Expression<Func<BKInternal, object>>[] includeProperties);
+        Task<ResultModel<dynamic>> Transporting(int currentUserId, string code);
     }
     public interface IDepartmentRepository : IRepository<Deparment> { }
     public interface IPostOfficeRepository : IRepository<PostOffice>
@@ -41,34 +46,35 @@ namespace NascoWebAPI.Data
         Task<PostOffice> GetByOfficerId(int officeId);
         Task<IEnumerable<PostOffice>> GetByRootPO(int postOfficeId);
         Task<bool> SameCenter(int postOfficeId1, int postOfficeId2);
-        PostOffice GetByDistanceMin(IEnumerable<PostOffice> postOffices, double latDistance, double lngDistance);
+        Task<PostOffice> GetByDistanceMin(IEnumerable<PostOffice> postOffices, double latDistance, double lngDistance);
         Task<PostOffice> GetDistanceMinByLocation(int cityId, double lat, double lng, int? type);
-        IEnumerable<PostOffice> GetListChild(int parentId);
-        IEnumerable<PostOffice> GetListChild(PostOffice parent);
-        IEnumerable<PostOffice> GetListChild(int parentId, int? postOfficeMethodId = null);
-        IEnumerable<PostOffice> GetListParent(PostOffice child);
-        IEnumerable<PostOffice> GetListParent(int childId);
-        IEnumerable<PostOffice> GetListParent(int childId, int? postOfficeMethodId = null);
-        IEnumerable<PostOffice> GetListFromLevel(int id, int? level = 0);
-        IEnumerable<PostOffice> GetListFromLevel(int id, int? level = 0, int? postOfficeTypeId = null);
-        IEnumerable<PostOffice> GetListFromBranch(int id, int? postOfficeTypeId = null);
-        IEnumerable<PostOffice> GetListFromCenter(int id, int? postOfficeTypeId = null);
+        Task<IEnumerable<PostOffice>> GetListChild(int parentId);
+        Task<IEnumerable<PostOffice>> GetListChild(PostOffice parent);
+        Task<IEnumerable<PostOffice>> GetListChild(int parentId, int? postOfficeMethodId = null);
+        Task<IEnumerable<PostOffice>> GetListParent(PostOffice child, int? level = 0);
+        Task<IEnumerable<PostOffice>> GetListParent(int childId, int? level = 0);
+        Task<IEnumerable<PostOffice>> GetListParent(int childId, int? level = 0, int? postOfficeMethodId = null);
+        Task<IEnumerable<PostOffice>> GetListFromLevel(int id, int? level = 0);
+        Task<IEnumerable<PostOffice>> GetListFromLevel(int id, int? level = 0, int? postOfficeTypeId = null);
+        Task<IEnumerable<PostOffice>> GetListFromBranch(int id, int? postOfficeTypeId = null);
+        Task<IEnumerable<PostOffice>> GetListFromCenter(int id, int? postOfficeTypeId = null);
         Task<IEnumerable<PostOffice>> GetListFromRoot(int? postOfficeMethodId = null);
-        PostOffice GetBranch(int id);
+        Task<PostOffice> GetBranch(int id);
+        Task<IEnumerable<PostOffice>> GetListPostOfficeAirport(double lat, double lng);
     }
     public interface ITypeReasonRepository : IRepository<TypeReason> { }
     public interface ICustomerRepository : IRepository<Customer>
     {
         Task<Customer> GetCustomerByPhone(string phone);
         string GetCode(int id);
+        Task<IEnumerable<int>> GetListIdByPartner(int partnerId);
+        Task<IEnumerable<int>> GetListIdHasParner();
     }
     public interface ILocationRepository : IRepository<Location>
     {
-
         Task<IEnumerable<Location>> GetCities();
         Task<IEnumerable<Location>> GetDistrictsByCity(int cityId);
         int GetIdBestMatches(IEnumerable<Location> locations, string locationName, uint? percentlimitCost = null);
-
     }
     public interface IServiceRepository : IRepository<Service>
     {
@@ -78,7 +84,10 @@ namespace NascoWebAPI.Data
         IEnumerable<Service> GetListMainServiceByLading(LadingViewModel model);
     }
     public interface IRecipientRepository : IRepository<Recipient> { }
-    public interface IBKDeliveryRepository : IRepository<BKDelivery> { }
+    public interface IBKDeliveryRepository : IRepository<BKDelivery>
+    {
+        Task<ResultModel<BKDelivery>> Delivering(int currentUserId, string code);
+    }
     public interface IStatusRepository : IRepository<LadingStatus> { }
     public interface ICODStatusRepository : IRepository<CODStatus> { }
     public interface ITransportRepository : IRepository<Transport> { }
@@ -137,7 +146,7 @@ namespace NascoWebAPI.Data
     }
     public interface ITimeLineRepository : IRepository<TimeLine>
     {
-        Task<IEnumerable<ExpectedTimeModel>> GetListExpectedTime(int cityFromId, int cityToId, int serviceId, int poCurrentId,int? poToLevel = null, int? deliveryReceiveId = null);
+        Task<IEnumerable<ExpectedTimeModel>> GetListExpectedTime(int cityFromId, int cityToId, int serviceId, int poCurrentId, int? poToLevel = null, int? deliveryReceiveId = null);
     }
     public interface IMAWBRepository : IRepository<MAWB>
     {
@@ -146,4 +155,10 @@ namespace NascoWebAPI.Data
     }
     public interface IAirlineRepository : IRepository<Airline> { }
     public interface IReasonRepository : IRepository<Reason> { }
+    public interface ICustomerContactRepository : IRepository<CustomerContact>
+    {
+        IQueryable<CustomerContact> GetListContactByCustomer(int id);
+        IQueryable<CustomerContact> GetListContactByCustomer(int[] ids);
+        IQueryable<CustomerContact> GetListContactByPartnerId(int id);
+    }
 }

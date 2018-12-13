@@ -9,6 +9,7 @@ namespace NascoWebAPI.Helper.Common
 {
     public class Constants
     {
+        public const string KEY_API_SYSTEM = "BCECA7EEF96414010F41C38F2D7D3AB7";
 
         public const string PassPhrase = "OriBTech@2014";
         public const string SystemAdmin = "oribtechadmin";
@@ -75,19 +76,19 @@ namespace NascoWebAPI.Helper.Common
             [Description("Tổng COD đang giữ trong tháng")]
             CODDangGiuThang = 10
         }
-        public enum StatusFlight
-        {
-            Created = 100,
-            TakeOff,
-            Landing,
-            Cancel,
-            Confirmed = 105,
-        }
+
         public enum JobType
         {
             KTBAY = 6
         }
-
+        public enum ServiceOther
+        {
+            COD = 40,
+            PACK = 41,
+            DBND_PH = 117,
+            DBND_LH = 151
+        }
+      
     }
 
 }

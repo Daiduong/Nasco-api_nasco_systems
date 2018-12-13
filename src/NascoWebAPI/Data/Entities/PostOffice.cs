@@ -37,5 +37,7 @@ namespace NascoWebAPI.Data
         public int? Order { get; set; }
         public string Note { get; set; }
         public bool? IsInternal { get; set; }
+        public bool? IsAirport { get; set; }
+        public string AirportName { get; set; }
     }
 }

@@ -84,6 +84,17 @@ namespace NascoWebAPI.Controllers
             }
             return JsonError("null");
         }
+        [HttpGet("Get")]
+        public async Task<JsonResult> Get()
+        {
+            var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
+            var user = await _officeRepository.GetSingleAsync(o => o.UserName == jwtDecode.Subject);
+            if (user != null)
+            {
+                return Json(user);
+            }
+            return JsonError("User not found");
+        }
         [HttpPost("Update")]
         public async Task<JsonResult> Update([FromBody]JObject jsonData)
         {

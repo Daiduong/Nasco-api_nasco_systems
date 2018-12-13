@@ -36,6 +36,8 @@ namespace NascoWebAPI.Data
         public Nullable<System.DateTime> ModifiedDate { get; set; }
         public Nullable<double> TotalWeightToPrice { get; set; }
         public int? State { get; set; }
+        public int? TookOffBy { get; set; }
+        public int? ReceivedBy { get; set; }
         [ForeignKey("MAWBId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public MAWB MAWB { get; set; }
         [ForeignKey("FlightStatus"), DatabaseGenerated(DatabaseGeneratedOption.None)]

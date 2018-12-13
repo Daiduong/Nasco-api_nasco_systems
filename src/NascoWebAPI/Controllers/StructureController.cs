@@ -36,7 +36,7 @@ namespace NascoWebAPI.Controllers
         [HttpGet("GetAll")]
         public async Task<JsonResult> GetList()
         {
-            var result = await _structureRepository.GetAllAsync();
+            var result = await _structureRepository.GetAsync( x=> x.State == 0);
             return Json(result);
         }
         #endregion

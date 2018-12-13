@@ -11,6 +11,7 @@ namespace NascoWebAPI.Data
     {
         public int TypeReasonID { get; set; }
         public string TypeReasonName { get; set; }
+        public string Code { get; set; }
         public bool IsText { get; set; }
         public bool IsDeny { get; set; }
         public bool IsPickup { get; set; }

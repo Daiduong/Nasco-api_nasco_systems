@@ -1,13 +1,15 @@
-﻿using System;
+﻿using NascoWebAPI.Data;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static NascoWebAPI.Helper.Common.Constants;
 
 namespace NascoWebAPI.Models
 {
     public class LadingViewModel
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
         public string Code { get; set; } //Mã
         public string PartnerCode { get; set; } //Mã
         public DateTime? CreateDate { get; set; }
@@ -134,6 +136,8 @@ namespace NascoWebAPI.Models
         public DateTime? ExpectedTimePickUp { get; set; }
         public DateTime? ExpectedTimeDelivery { get; set; }
         public DateTime? ExpectedTimeTransfer { get; set; }
+        public DateTime? ExpectedTimeTakeOff { get; set; }
+
         public int? POMediateId { get; set; }
         public bool IsInternal { get; set; }
         public int? CountryFromId { get; set; }
@@ -144,7 +148,34 @@ namespace NascoWebAPI.Models
         public string IdentityTo { get; set; }
         public string PostCodeTo { get; set; }
         public int? OrderByService { get; set; }
-
+        public double DistanceFrom { get; set; }
+        public double DistanceTo { get; set; }
+        public double WeightToPrice
+        {
+            get
+            {
+                return ((Mass ?? 0) > (Weight ?? 0) ? Mass : Weight) ?? 0;
+            }
+        }
+        public void UpdateServiceOthers()
+        {
+            //COD
+            var serviceOtherIds = AnotherServiceIds;
+            if (COD > 0 && !serviceOtherIds.Contains((int)ServiceOther.COD))
+            {
+                serviceOtherIds = serviceOtherIds.Union(new int[] { (int)ServiceOther.COD }).ToList();
+            }
+            //DBND
+            if (POFrom.HasValue && DistanceFrom > 0 && !serviceOtherIds.Contains((int)ServiceOther.DBND_LH))
+            {
+                serviceOtherIds = serviceOtherIds.Union(new int[] { (int)ServiceOther.DBND_LH }).ToList();
+            }
+            if (POTo.HasValue && DistanceTo > 0 && !serviceOtherIds.Contains((int)ServiceOther.DBND_PH))
+            {
+                serviceOtherIds = serviceOtherIds.Union(new int[] { (int)ServiceOther.DBND_PH }).ToList();
+            }
+            AnotherServiceId = string.Join(",", serviceOtherIds);
+        }
     }
     public class NumberDIM
     {
