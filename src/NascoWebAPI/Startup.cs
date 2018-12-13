@@ -19,6 +19,7 @@ using NascoWebAPI.Models.JwtModels;
 using System.Net.Http.Formatting;
 using Newtonsoft.Json.Serialization;
 using NascoWebAPI.Helper.Logger;
+using Microsoft.AspNetCore.Identity;
 
 namespace NascoWebAPI
 {
@@ -34,7 +35,7 @@ namespace NascoWebAPI
             if (env.IsDevelopment())
             {
                 // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets();
+                //builder.AddUserSecrets();
 
                 // This will push telemetry data through Application Insights pipeline faster, allowing you to view results immediately.
                 builder.AddApplicationInsightsSettings(developerMode: true);
@@ -52,13 +53,14 @@ namespace NascoWebAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            Helper.ConnectionHelper.CONNECTION_STRING = Configuration.GetConnectionString("NascoWebAPIConnection");
             // Add framework services.
             services.AddApplicationInsightsTelemetry(Configuration);
            
             services.Configure<FormOptions>(options => options.BufferBody = true);
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("NascoWebAPIConnection")));
-            Helper.ConnectionHelper.CONNECTION_STRING = Configuration.GetConnectionString("NascoWebAPIConnection");
+                options.UseSqlServer(Helper.ConnectionHelper.CONNECTION_STRING));
+            
             services.AddIdentity<ApplicationUser, IdentityRole>()
                .AddEntityFrameworkStores<ApplicationDbContext>();
 
