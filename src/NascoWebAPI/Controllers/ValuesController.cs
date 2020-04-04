@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using VNPTPublishService;
 using Microsoft.AspNetCore.Server.Kestrel;
+using System.Runtime.CompilerServices;
 
 namespace NascoWebAPI.Controllers
 {
@@ -29,8 +30,8 @@ namespace NascoWebAPI.Controllers
 
         // POST api/values
         [HttpPost]
-        public Task<ImportAndPublishInvResponse> Post()
-        { 
+        public async Task<ImportAndPublishInvResponse> Post()
+        {
             ImportAndPublishInvRequestBody requestBody = new ImportAndPublishInvRequestBody();
             requestBody.Account = "nascoservice";
             requestBody.ACpass = "123456aA@";
@@ -68,8 +69,8 @@ namespace NascoWebAPI.Controllers
 			    </Inv>
 		    </Invoices>
           </xmlInvData>";
-            requestBody.username = "";
-            requestBody.password = "";
+            requestBody.username = "nascoservice";
+            requestBody.password = "123456aA@";
             requestBody.pattern = "01GTKT0/001";
             requestBody.serial = "NC/18E";
             requestBody.convert = 0;
@@ -84,7 +85,7 @@ namespace NascoWebAPI.Controllers
                 requestBody.pattern,
                 requestBody.serial,
                 requestBody.convert
-                );
+                ).ConfigureAwait(true).GetAwaiter().GetResult();
             return result;
         }
 
