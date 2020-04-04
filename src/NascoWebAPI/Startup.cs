@@ -53,7 +53,7 @@ namespace NascoWebAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            Helper.ConnectionHelper.CONNECTION_STRING = Configuration.GetConnectionString("NascoWebAPIConnection");
+            Helper.ConnectionHelper.CONNECTION_STRING = Configuration.GetConnectionString("NascoConnection");
             // Add framework services.
             services.AddApplicationInsightsTelemetry(Configuration);
            
