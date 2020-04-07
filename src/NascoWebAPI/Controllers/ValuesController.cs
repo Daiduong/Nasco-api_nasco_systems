@@ -35,45 +35,45 @@ namespace NascoWebAPI.Controllers
             ImportAndPublishInvRequestBody requestBody = new ImportAndPublishInvRequestBody();
             requestBody.Account = "nascoadmin";
             requestBody.ACpass = "123456aA@";
-            requestBody.xmlInvData = @"<xmlInvData>
-      	    <Invoices>
+            requestBody.xmlInvData = @"<Invoices>
 			    <Inv>
+                <key>dungtest1</key> 
 			    <Invoice>
 			    <CusCode>12356</CusCode>
 			    <CusName>Thai Phan</CusName>
 			    <Buyer>test</Buyer>
 			    <CusAddress>355 tung thien vuong</CusAddress>
-			    <CusPhone>000000000</CusPhone>
-			    <CusTaxCode>12345678</CusTaxCode>
-			    <PaymentMethod>Phương thức thanh toán</PaymentMethod>
-			    <KindOfService>Tháng hóa đơn</KindOfService>
+			    <CusPhone>0946669698</CusPhone>
+			    <CusTaxCode>0108497732</CusTaxCode>
+			    <PaymentMethod>TM</PaymentMethod>
+			    <KindOfService>04</KindOfService>
+			    <Extra>Khuyen mai</Extra>
 			    <Products>
 			    <Product>
 			    <ProdName>TEST</ProdName>
-			    <ProdUnit>Đơn vị tính</ProdUnit>
+                <Code>RV</Code>
+			    <ProdUnit>cai</ProdUnit>
 			    <ProdQuantity>1</ProdQuantity>
-			    <ProdPrice>123</ProdPrice>
-			    <Amount>123</Amount>
+			    <ProdPrice>1000000</ProdPrice>
+			    <Amount>1000000</Amount>
 			    </Product>
 			    </Products>
-			    <Total>0</Total>
+			    <Total>1000000</Total>
 			    <DiscountAmount>0</DiscountAmount>
 			    <VATRate>10</VATRate>
-			    <VATAmount>1000</VATAmount>
-			    <Amount>0</Amount>
-			    <AmountInWords>vai</AmountInWords>
-			    <Extra>Các nội dung mở rộng</Extra>
-			    <ArisingDate>04/03/2020</ArisingDate>
+			    <VATAmount>100000</VATAmount>
+			    <Amount>1100000</Amount>
+			    <AmountInWords>mot trieu mot tran ngan việt nam đồng</AmountInWords>
+                <ArisingDate>04/03/2020</ArisingDate>
 			    <PaymentStatus>1</PaymentStatus>
 			    </Invoice>
 			    </Inv>
-		    </Invoices>
-          </xmlInvData>";
+		    </Invoices>";
             requestBody.username = "nascoservice";
             requestBody.password = "123456aA@";
             requestBody.pattern = "01GTKT0/001";
             requestBody.serial = "NC/18E";
-            requestBody.convert = 0;
+            requestBody.convert = 1;
             PublishServiceSoapClient.EndpointConfiguration endpoint = new PublishServiceSoapClient.EndpointConfiguration();
             PublishServiceSoapClient client = new PublishServiceSoapClient(endpoint);
             var result = client.ImportAndPublishInvAsync(
