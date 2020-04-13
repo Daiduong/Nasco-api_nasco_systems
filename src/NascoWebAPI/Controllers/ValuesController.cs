@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using VNPTPublishService;
+using VNPTPortalService;
 using Microsoft.AspNetCore.Server.Kestrel;
 using System.Runtime.CompilerServices;
 
@@ -99,6 +100,20 @@ namespace NascoWebAPI.Controllers
         [HttpDelete("{id}")]
         public void Delete(int id)
         {
+        }
+
+        //Get Invoice
+        [HttpGet("GetInvoice")]
+        public async Task<getInvViewFkeyResponse> GetInvoice(string fkey, string userName, string userPass)
+        {
+            PortalServiceSoapClient.EndpointConfiguration endpoint = new PortalServiceSoapClient.EndpointConfiguration();
+            PortalServiceSoapClient client = new PortalServiceSoapClient(endpoint);
+            var result = client.getInvViewFkeyAsync(
+                fkey,
+                userName,
+                userPass
+                ).ConfigureAwait(true).GetAwaiter().GetResult();
+            return result;
         }
     }
 }
