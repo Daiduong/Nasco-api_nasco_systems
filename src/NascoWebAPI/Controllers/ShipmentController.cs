@@ -1176,7 +1176,6 @@ namespace NascoWebAPI.Controllers
         }
         [HttpPost("Update")]
         public async Task<JsonResult> Update([FromBody]JObject jsonData)
-
         {
             var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
             var user = await _officeRepository.GetFirstAsync(o => o.UserName == jwtDecode.Subject);
@@ -1205,6 +1204,15 @@ namespace NascoWebAPI.Controllers
                             if ((int)StatusLading.ThanhCong == lading.Status && isReturn)
                             {
                                 lading.Status = (int)StatusLading.DaChuyenHoan;
+                            }
+                            if ((int)StatusLading.ThanhCong == lading.Status)
+                            {
+                                var pointofCus = _context.CustomerPoints.Where(x => x.CustomerId == lading.SenderId).FirstOrDefault();
+                                pointofCus.AllPoint += lading.Point.GetValueOrDefault();
+                                pointofCus.currentpoint += lading.Point.GetValueOrDefault();
+                                pointofCus.RankId = _context.Ranks.Where(x => x.MinPoint <= pointofCus.AllPoint && x.MaxPoint >= pointofCus.AllPoint && x.IsEnabled == true).FirstOrDefault().Id;
+                                _context.CustomerPoints.Update(pointofCus);
+                                _context.SaveChanges();
                             }
                             if ((int)StatusLading.DangLayHang == lading.Status)
                             {

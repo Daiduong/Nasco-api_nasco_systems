@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NascoWebAPI.Data;
+using NascoWebAPI.Data.Entities;
 
 namespace NascoWebAPI
 {
@@ -101,6 +102,8 @@ namespace NascoWebAPI
         public virtual DbSet<CustomerContact> CustomerContacts { get; set; }
         public virtual DbSet<Package> Packages { get; set; }
         public virtual DbSet<PackageHistory> PackageHistories { get; set; }
+        public virtual DbSet<CustomerPoint> CustomerPoints { get; set; }
+        public virtual DbSet<Rank> Ranks { get; set; }
 
         #region View
         public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }

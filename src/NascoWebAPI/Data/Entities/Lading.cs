@@ -138,6 +138,7 @@ namespace NascoWebAPI.Data
         public DateTime? ExpectedTimeTakeOff { get; set; }
         public double? DistanceFrom { get; set; }
         public double? DistanceTo { get; set; }
+        public double? Point { get; set; }
 
         [ForeignKey("RecipientId"), DatabaseGenerated(DatabaseGeneratedOption.None)]
         public virtual Recipient Recipient { get; set; }
