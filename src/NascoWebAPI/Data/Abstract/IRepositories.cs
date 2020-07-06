@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using NascoWebAPI.Data.Entities;
 using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using System;
@@ -160,5 +161,9 @@ namespace NascoWebAPI.Data
         IQueryable<CustomerContact> GetListContactByCustomer(int id);
         IQueryable<CustomerContact> GetListContactByCustomer(int[] ids);
         IQueryable<CustomerContact> GetListContactByPartnerId(int id);
+    }
+    public interface IUnitGroupRepository : IRepository<UnitGroups>
+    {
+        List<Proc_GetAllUnitGroup_Result> _GetAllUnitGroup();
     }
 }

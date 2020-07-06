@@ -104,6 +104,7 @@ namespace NascoWebAPI
         public virtual DbSet<PackageHistory> PackageHistories { get; set; }
         public virtual DbSet<CustomerPoint> CustomerPoints { get; set; }
         public virtual DbSet<Rank> Ranks { get; set; }
+        public virtual DbSet<UnitGroups> UnitGroups { get; set; }
 
         #region View
         public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }
