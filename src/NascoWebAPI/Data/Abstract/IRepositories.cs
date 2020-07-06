@@ -100,6 +100,7 @@ namespace NascoWebAPI.Data
         Task<ResultModel<ComputedPriceModel>> Computed(LadingViewModel lading);
         Dictionary<int, double> GetListPrice(double weight, int customerId = 0, int state_from = 0, int state_to = 0, int receive_delivery = 0);
         double GetPrice(double weight, int serviceId = 0, int priceListId = 0, int state_from = 0, int state_to = 0, int receive_delivery = 0);
+        Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null);
     }
     public interface IPriceListRepository : IRepository<PriceList>
     {

@@ -22,5 +22,6 @@ namespace NascoWebAPI.Data
         public Nullable<double> SWPlus { get; set; }
         public Nullable<double> SWFrom { get; set; }
         public Nullable<double> SWTo { get; set; }
+        public Nullable<int> UnitGroupsId { get; set; }
     }
 }
