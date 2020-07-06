@@ -562,7 +562,109 @@ namespace NascoWebAPI.Data
             double.TryParse(obj.GetValue(columnName) + "", out double d);
             return d;
         }
+        public async Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null)
+        {
+            double priceDefaul = 0;
+            if (!(await _context.PriceLists.AnyAsync(o => o.PriceListID == priceListId)))
+            {
+                priceListId = (await _context.PriceLists.FirstAsync(r => r.IsApply == true)).PriceListID;
+            }
+            var locationFrom = await _context.Locations.FirstOrDefaultAsync(o => o.LocationId == cityFromId);
+            var locationTo = await _context.Locations.FirstOrDefaultAsync(o => o.LocationId == cityToId);
+            if (locationFrom == null || (locationFrom.Location_area_Id ?? 0) == 0
+                || locationTo == null || (locationTo.Location_area_Id ?? 0) == 0)
+            { }
+            else if ((await _context.SetupServiceAreas
+                                .AnyAsync(o => o.AreaId == locationFrom.Location_area_Id && o.ServiceId.Value == serviceId)) &&
+                      (await _context.SetupServiceAreas
+                                .AnyAsync(o => o.AreaId == locationTo.Location_area_Id && o.ServiceId.Value == serviceId)) &&
+                     (await _context.DeliveryReceives.AnyAsync(o => o.Id == deliveryReceiveId && o.DeliveryReceiveCode != null && o.DeliveryReceiveCode != string.Empty)))
+            {
+                var areaFromId = (await _context.SetupServiceAreas
+                                .FirstOrDefaultAsync(o => o.AreaId == locationFrom.Location_area_Id && o.ServiceId.Value == serviceId)).AreaIdFrom;
+                var areaToId = (await _context.SetupServiceAreas
+                               .FirstOrDefaultAsync(o => o.AreaId == locationTo.Location_area_Id && o.ServiceId.Value == serviceId)).AreaIdTo;
 
+                var aOFromId = (await _context.SetupAddOns.FirstOrDefaultAsync(o => o.LocationId == locationFrom.LocationId && o.ServiceId.Value == serviceId))?.AOIdFrom;
+                var aOToId = (await _context.SetupAddOns.FirstOrDefaultAsync(o => o.LocationId == locationTo.LocationId && o.ServiceId.Value == serviceId))?.AOIdTo;
+
+                if (aOFromId.HasValue && aOToId.HasValue)
+                {
+                    var priceListDetails = _context.PriceDetails.Where(o => o.AreaIdFrom.Value == areaFromId && o.AreaIdTo.Value == areaToId
+                    && o.ServiceId.Value == serviceId && o.SWId.HasValue && o.PriceListId.Value == priceListId);
+                    if (priceListDetails.Count() > 0)
+                    {
+                        var weightIds = priceListDetails.Select(o => o.SWId);
+                        var setupWeights = await _context.SetupWeights.Where(o => weightIds.Contains(o.Id) && o.FormulaId.HasValue && o.SWFrom.HasValue && o.SWTo.HasValue && o.UnitGroupsId == unitGroupId).ToListAsync();
+                        if (setupWeights.Count() > 0)
+                        {
+                            var weightTemp = weight;
+                            var aOFromCode = await _context.AddOns.AnyAsync(o => o.Id == aOFromId.Value) ? _context.AddOns.Single(o => o.Id == aOFromId.Value).AOCode + "From" : string.Empty;
+                            var aOToCode = await _context.AddOns.AnyAsync(o => o.Id == aOToId.Value) ? _context.AddOns.Single(o => o.Id == aOToId.Value).AOCode + "To" : string.Empty;
+                            var deliveryCode = (await _context.DeliveryReceives.SingleAsync(o => o.Id == deliveryReceiveId && o.DeliveryReceiveCode != null && o.DeliveryReceiveCode != string.Empty)).DeliveryReceiveCode.Replace("-", "_");
+                            int? districtTypeId = null;
+                            //
+                            if (cityFromId == cityToId)
+                            {
+                                var districtTypeFromId = _context.Locations.FirstOrDefault(o => o.LocationId == districtFromId)?.DistrictTypeId;
+                                var districtTypeToId = _context.Locations.FirstOrDefault(o => o.LocationId == districtToId)?.DistrictTypeId;
+                                districtTypeId = _context.DistrictTypeMappings.FirstOrDefault(o => o.DistrictTypeFromId == districtTypeFromId && o.DistrictTypeToId == districtTypeToId)?.DistrictTypeId;
+                            }
+
+                            var priceDetail = new PriceDetail();
+                            while (weightTemp >= 0 && setupWeights.Count(o => o.SWFrom.Value <= weightTemp && o.SWTo.Value > weightTemp) > 0)
+                            {
+                                var setupWeight = setupWeights.OrderBy(o => o.SWTo).ThenByDescending(o => o.SWFrom).First(o => o.SWFrom.Value <= weightTemp && o.SWTo.Value > weightTemp);
+                                priceDetail = priceListDetails.First(o => o.SWId == setupWeight.Id);
+
+                                double priceAOFrom = 0;
+                                double priceAOTo = 0;
+                                double priceDTAddOn = 0;
+                                double.TryParse(priceDetail.GetType().GetProperty(deliveryCode).GetValue(priceDetail, null) + "", out double priceMain);
+
+                                if (!string.IsNullOrEmpty(aOFromCode))
+                                    double.TryParse(priceDetail.GetType().GetProperty(aOFromCode).GetValue(priceDetail, null) + "", out priceAOFrom);
+
+                                if (!string.IsNullOrEmpty(aOToCode))
+                                    double.TryParse(priceDetail.GetType().GetProperty(aOToCode).GetValue(priceDetail, null) + "", out priceAOTo);
+                                if (districtTypeId.HasValue)
+                                    priceDTAddOn = (_context.PriceDetailDistrictTypeAddOns.FirstOrDefault(o => o.PriceDetailId == priceDetail.Id && o.DistrictTypeId == districtTypeId)?.PriceAddOn ?? 0);
+                                var totalPrice = (priceMain + priceAOFrom + priceAOTo + priceDTAddOn);
+                                switch (setupWeight.FormulaId)
+                                {
+                                    case (int)StatusFormula.Formula1:
+                                        priceDefaul += totalPrice;
+                                        weightTemp = -1;
+                                        break;
+                                    case (int)StatusFormula.Formula2:
+                                        priceDefaul += totalPrice * Math.Round(weightTemp + 0.00000001, 7);
+                                        weightTemp = -1;
+                                        break;
+                                    case (int)StatusFormula.Formula3:
+                                        var weightSubtract = weightTemp - setupWeight.SWFrom.Value;
+                                        weightSubtract = weightSubtract == 0 ? (setupWeight.SWPlus ?? 0) : weightSubtract;
+                                        priceDefaul += totalPrice * Math.Ceiling(weightSubtract / ((setupWeight.SWPlus ?? 0) > 0 ? setupWeight.SWPlus.Value : 1));
+                                        weightTemp = setupWeight.SWFrom.Value - 0.00000001;
+                                        break;
+                                }
+
+                            }
+
+                            if (customerId.HasValue && priceDetail != null)
+                            {
+                                var priceDetailCustomer = await _context.PriceDetailCustomers.FirstOrDefaultAsync(o => o.State == 0 && o.CustomerId == customerId && o.PriceDetailId == priceDetail.Id);
+                                if (priceDetailCustomer != null)
+                                {
+                                    double.TryParse(priceDetailCustomer.GetValue(deliveryCode + "_DiscountAmount") + "", out double discountAmount);
+                                    priceDefaul = !(priceDetailCustomer.Fixed ?? false) ? priceDefaul * (1 + discountAmount) : discountAmount;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return Math.Round(priceDefaul < 0 ? 0 : priceDefaul);
+        }
     }
 }
 
