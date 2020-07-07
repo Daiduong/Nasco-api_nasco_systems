@@ -41,8 +41,9 @@ namespace NascoWebAPI.Data
                             Weight = (lading.Weight ?? 0) / (lading.Number ?? 0),
                             StatusId = lading.Status,
                             Order = orderNumber,
-                            TotalNumber = 1
-                        };
+                            TotalNumber = 1,
+                            UnitGroupsId = model[i].UnitGroupId
+                         };
                         _context.PackageOfLadings.Add(packageOfLading);
                     }
                 }

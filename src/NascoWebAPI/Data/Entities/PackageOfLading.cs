@@ -41,5 +41,6 @@ namespace NascoWebAPI.Data
         public Nullable<int> FlightId { get; set; }
         public Nullable<bool> Return { get; set; }
         public int? DeliveryBy { get; set; }
+        public int? UnitGroupsId { get; set; }
     }
 }

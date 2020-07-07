@@ -43,6 +43,10 @@ namespace NascoWebAPI.Controllers
             }
             ladingModel.UpdateServiceOthers();
             var result = await _PriceRepository.Computed(ladingModel);
+            if (ladingModel.isCaculatePerPackage)
+            {
+                result = await _PriceRepository.ComputedBox(ladingModel);
+            }
             return Json(result.Error == 0 ? new CalculatePriceModel(result.Data)
             {
                 Message = result.Message

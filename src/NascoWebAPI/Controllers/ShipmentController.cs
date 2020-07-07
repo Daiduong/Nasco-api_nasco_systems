@@ -394,6 +394,10 @@ namespace NascoWebAPI.Controllers
                 ladingModel.POFrom = user.PostOfficeId;
                 ladingModel.UpdateServiceOthers();
                 var computed = (await _priceRepository.Computed(ladingModel));
+                if(ladingModel.isCaculatePerPackage == true)
+                {
+                    computed = (await _priceRepository.ComputedBox(ladingModel));
+                }
                 if (computed.Error != 0)
                     return JsonError(computed.Message);
                 var computedPrice = computed.Data;
@@ -535,7 +539,7 @@ namespace NascoWebAPI.Controllers
                 #endregion
 
                 #region Thông tin
-
+                lading.isCaculatePerPackage = ladingModel.isCaculatePerPackage? ladingModel.isCaculatePerPackage: false;
                 lading.PartnerCode = ladingModel.PartnerCode;
                 lading.State = (int)StatusSystem.Enable;
                 lading.CreateDate = DateTime.Now;
@@ -678,7 +682,7 @@ namespace NascoWebAPI.Controllers
                 #region Thông tin kiên
                 if (ladingModel.Number_L_W_H_DIM_List != null && ladingModel.Number_L_W_H_DIM_List.Count > 0)
                 {
-                    lading.Number_L_W_H_DIM = string.Join(",", ladingModel.Number_L_W_H_DIM_List.Where(o => o.Number > 0 && o.DIM > 0).Select(o => o.Number + "_" + o.Long + "_" + o.Width + "_" + o.Height + "_" + o.DIM));
+                    lading.Number_L_W_H_DIM = string.Join(",", ladingModel.Number_L_W_H_DIM_List.Where(o => o.Number > 0 && o.DIM > 0).Select(o => o.Number + "_" + o.Long + "_" + o.Width + "_" + o.Height + "_" + o.DIM + "_" + (o.UnitGroupId > 0 && o.UnitGroupId != null ? o.UnitGroupId.ToString() : "0")));
                 }
                 #endregion
                 lading.OfficerId = user.OfficerID;

@@ -150,6 +150,7 @@ namespace NascoWebAPI.Models
         public int? OrderByService { get; set; }
         public double DistanceFrom { get; set; }
         public double DistanceTo { get; set; }
+        public bool isCaculatePerPackage { get; set; }
         public double WeightToPrice
         {
             get
@@ -184,5 +185,6 @@ namespace NascoWebAPI.Models
         public double Width { get; set; }
         public double Height { get; set; }
         public double DIM { get; set; }
+        public int? UnitGroupId { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NASCOSoft_DAL.Models.LogicModel;
 using NascoWebAPI.Helper;
 using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
@@ -561,6 +562,147 @@ namespace NascoWebAPI.Data
         {
             double.TryParse(obj.GetValue(columnName) + "", out double d);
             return d;
+        }
+
+        public async Task<ResultModel<ComputedPriceModel>> ComputedBox(LadingViewModel lading)
+        {
+            var result = new ResultModel<ComputedPriceModel>();
+            var couponCode = lading.CouponCode;
+            var serviceOtherIds = lading.AnotherServiceIds;
+            var discountType = new DiscountType();
+            List<PriceInOrderLogicModel> priceInOrder = new List<PriceInOrderLogicModel>();
+            var priceList = await _context.PriceLists.FirstOrDefaultAsync(x => x.PriceListID == (lading.PriceListId ?? 0));
+            if (priceList != null)
+            {
+
+                double chargeDefault = 0;
+                double percent = 0;
+                foreach (var item in lading.Number_L_W_H_DIM_List)
+                {
+
+                    double weightToPrice = item.DIM;
+                    var tasks = new List<Task>
+                    {
+                        await Task.Factory.StartNew(async () =>
+                        {
+                            using (var context = new ApplicationDbContext())
+                            {
+
+                                var priceListCustomer = await context.PriceListCustomers.FirstOrDefaultAsync(o => o.PriceListId ==(lading.PriceListId ?? 0) && o.CustomerId == (lading.SenderId ?? 0) && o.State == 0);
+                                if(priceListCustomer != null){
+                                    discountType = await context.DiscountTypes.FirstOrDefaultAsync(o => o.Id  ==  (priceListCustomer.DiscountTypeId ?? 0));
+                                    percent = (priceListCustomer.PriceListPercent ?? 100) / 100 ;
+                                    if (discountType!= null && (discountType.Fixed ?? false))
+                                    {
+                                        percent = priceListCustomer.PriceListPercent ?? 0;
+                                    }
+                                }
+                            }
+                        }),
+                        await Task.Factory.StartNew(async () =>
+                        {
+                            using (var context = new ApplicationDbContext())
+                            {
+                                using (var priceRepository = new PriceRepository(context))
+                                {
+                                    if ((priceList.PriceListTypeId ?? 0) == 2)
+                                    {
+                                        if (lading.KDNumber.HasValue && lading.Insured.HasValue && lading.KDNumber.Value > 0 && lading.Insured.Value > 0
+                                            && lading.RDFrom.HasValue && lading.StructureID.HasValue)
+                                        {
+                                            chargeDefault = priceRepository.GetPriceHightValue(lading.KDNumber ?? 0, lading.Insured ?? 0, lading.RDFrom ?? 0, lading.StructureID ?? 0);
+                                        }
+                                    }
+                                    else {
+                                        var cityRecipientId = lading.CityRecipientId ?? 0;
+                                        if (lading.POMediateId.HasValue && lading.POTo.HasValue)
+                                        {
+                                            var poMediate = context.PostOffices.SingleOrDefault(x => x.PostOfficeID == lading.POMediateId.Value);
+                                            if(poMediate != null && poMediate.CityId.HasValue )
+                                            {
+                                                cityRecipientId = poMediate.CityId ?? 0;
+                                            }
+                                        }
+                                        chargeDefault = await priceRepository.ComputedBox(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, cityRecipientId, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId,item.UnitGroupId);
+                                    }
+                                }
+                            }
+                        })
+                    };
+                    await Task.WhenAll(tasks);
+                    priceInOrder.Add(new PriceInOrderLogicModel
+                    {
+                        OrderNumber = item.Number,
+                        Price = chargeDefault
+                    });
+                    chargeDefault = 0;
+                }
+                var computedPrice = new ComputedPriceModel
+                {
+                    ChargeMain = priceInOrder.Sum(x => x.Price).GetValueOrDefault(),
+                    Surcharge = lading.PriceOther ?? 0,
+                    ChargeFuel = Math.Round(chargeDefault * (priceList.PriceListFuel ?? 0) / 100)
+                };
+                if (discountType != null)
+                {
+                    switch (discountType.Code)
+                    {
+                        case "PP":
+                            computedPrice.ChargeMain = percent * computedPrice.ChargeMain;
+                            computedPrice.ChargeFuel = percent * computedPrice.ChargeFuel;
+                            break;
+                        case "PPM":
+                            computedPrice.ChargeMain = percent * computedPrice.ChargeMain;
+                            break;
+                    }
+                }
+                lading.PPXDPercent = computedPrice.ChargeFuel;
+                lading.PriceOther = computedPrice.Surcharge;
+                lading.PriceMain = computedPrice.ChargeMain;
+                if (serviceOtherIds != null)
+                {
+                    foreach (var serviceOtherId in serviceOtherIds)
+                    {
+                        var serviceOther = _context.Services.FirstOrDefault(x => x.ServiceID == serviceOtherId);
+                        var serviceOtherModel = new ServiceOtherModel()
+                        {
+                            Id = serviceOtherId,
+                            Name = serviceOther?.ServiceName,
+                            Code = serviceOther?.ServiceCode,
+                        };
+                        if (serviceOtherId == (int)ServiceOther.PACK)// DBND 
+                        {
+                            serviceOtherModel.Charge = lading.PackPrice ?? 0;
+                        }
+                        else
+                        {
+                            serviceOtherModel.Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
+                                 lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
+                        }
+                        if (serviceOtherModel.Charge > 0 || (serviceOtherModel.Charge == 0 && serviceOtherId != (int)ServiceOther.DBND_PH && serviceOtherId != (int)ServiceOther.DBND_LH))
+                        {
+                            computedPrice.ServiceOthers.Add(serviceOtherModel);
+                        }
+                    }
+                }
+                if (!string.IsNullOrEmpty(couponCode))
+                {
+                    using (var context = new ApplicationDbContext())
+                    {
+                        var couponRepository = new CouponRepository(context);
+                        var discountResult = couponRepository.GetDiscountAmount(couponCode, computedPrice, lading.SenderId);
+                        if (discountResult.Error == 0)
+                        {
+                            computedPrice.DiscountAmount = Math.Round((double)discountResult.Data);
+                        }
+                        else result.Message = discountResult.Message;
+                    }
+                }
+                computedPrice.listPriceOrder.AddRange(priceInOrder);
+                result.Data = computedPrice;
+                result.Error = 0;
+            }
+            return result;
         }
         public async Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null)
         {

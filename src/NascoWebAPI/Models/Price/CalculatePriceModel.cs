@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NASCOSoft_DAL.Models.LogicModel;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -82,6 +83,7 @@ namespace NascoWebAPI.Models
         {
             this.ServiceOthers = new List<ServiceOtherModel>();
         }
+        public List<PriceInOrderLogicModel> listPriceOrder { get; set; } = new List<PriceInOrderLogicModel>();
     }
     public class ServiceOtherModel
     {
