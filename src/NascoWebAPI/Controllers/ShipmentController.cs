@@ -1375,6 +1375,16 @@ namespace NascoWebAPI.Controllers
             return JsonError("null");
         }
 
+        [HttpGet("GetByStatusCurrentEmp")]
+        public JsonResult GetByStatusCurrentEmp(int? offId, string code = null, int? status = null, DateTime? startTime = null, DateTime? endTime = null, int? pageNum = 0, int? pageSize = 20)
+        {
+            if(!offId.HasValue)
+            {
+                return JsonError("Biker không tồn tại");
+            }
+            return JsonSuccess(_ladingRepository.GetLadings(offId.Value, code, status, startTime, endTime, pageNum, pageSize));
+        }
+
         #endregion
         #region EMS
         [AllowAnonymous]

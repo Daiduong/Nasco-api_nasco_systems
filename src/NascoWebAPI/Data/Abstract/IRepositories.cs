@@ -26,6 +26,7 @@ namespace NascoWebAPI.Data
         Task<double> GetSumLadingReport(int officerID, int reportType);
         string CodeGenerationByLocationCode(int locationId, int id);
         bool EqualsCode(string code);
+        List<Lading> GetLadings(int offId, string code = null, int? status = null, DateTime? startTime = null, DateTime? endTime = null,int ? pageNum = 0, int? pageSize = 20);
 
         Task<ResultModel<Lading>> InsertEMS(int currentUserId, int customerContactId, int serviceId, string code, int statusId = (int)StatusLading.DaLayHang);
         Task<ResultModel<dynamic>> UpdateEMS();

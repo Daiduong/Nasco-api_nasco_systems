@@ -327,7 +327,7 @@ namespace NascoWebAPI.Data
                 var postOfficeRepository = new PostOfficeRepository(_context);
 
                 //GetPriceList by customer
-                var cityRecipientId = customerContact.CityId ==  (int)LocationEnum.HAN ? (int)LocationEnum.SGN : (int)LocationEnum.HAN;
+                var cityRecipientId = customerContact.CityId == (int)LocationEnum.HAN ? (int)LocationEnum.SGN : (int)LocationEnum.HAN;
                 var poToId = _context.Locations.FirstOrDefault(x => x.LocationId == cityRecipientId)?.PostOfficeId;
                 var centerFromId = (await postOfficeRepository.GetBranch(currentPOId) ?? new PostOffice()).PostOfficeID;
                 var centerToId = (await postOfficeRepository.GetBranch(poToId ?? 0) ?? new PostOffice()).PostOfficeID;
@@ -514,7 +514,7 @@ namespace NascoWebAPI.Data
         {
             var result = new ResultModel<dynamic>();
             var lading = await this.GetFirstAsync(x => x.Id == ladingId && x.Sender != null && x.Sender.PartnerId == ladingId, null, x => x.Sender);
-            if (lading == null )
+            if (lading == null)
                 return result.Init(message: "Không tìm thấy thông tin vận đơn");
             var poCurrent = await _context.PostOffices.FirstOrDefaultAsync(x => x.PostOfficeID == poCurrentId);
             if (poCurrent == null)
@@ -549,6 +549,28 @@ namespace NascoWebAPI.Data
                 result.Message = ex.Message;
             }
             return result;
+        }
+        public List<Lading> GetLadings(int offId, string code = null, int? status = null, DateTime? startTime = null, DateTime? endTime = null, int? pageNum = 0, int? pageSize = 20)
+        {
+            Expression<Func<Lading, bool>> expresionFinal = c => c.State == 0 && c.OfficerId == offId;
+
+            if (status.HasValue)
+            {
+                Expression<Func<Lading, bool>> expresionId = c => (c.Status == status);
+                expresionFinal = PredicateBuilder.And(expresionFinal, expresionId);
+            }
+
+            if (!String.IsNullOrWhiteSpace(code))
+            {
+                Expression<Func<Lading, bool>> expresionCode = c => (c.Code == code);
+                expresionFinal = PredicateBuilder.And(expresionFinal, expresionCode);
+            }
+            if (endTime.HasValue && startTime.HasValue)
+            {
+                Expression<Func<Lading, bool>> expresionCode = c => (c.CreateDate.Value.Date >= startTime.Value.Date && c.CreateDate <= endTime.Value.Date);
+                expresionFinal = PredicateBuilder.And(expresionFinal, expresionCode);
+            }
+            return _context.Ladings.Where(expresionFinal).Skip(pageNum.Value * pageSize.Value).Take(pageSize.Value).ToList();
         }
     }
 
