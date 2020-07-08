@@ -26,7 +26,7 @@ namespace NascoWebAPI.Data
         Task<double> GetSumLadingReport(int officerID, int reportType);
         string CodeGenerationByLocationCode(int locationId, int id);
         bool EqualsCode(string code);
-        List<Lading> GetLadings(int offId, string code = null, int? status = null, DateTime? startTime = null, DateTime? endTime = null,int ? pageNum = 0, int? pageSize = 20);
+        List<Lading> GetLadings(int offId, string code = null, int? status = null, DateTime? startTime = null, DateTime? endTime = null, int? pageNum = 0, int? pageSize = 20);
 
         Task<ResultModel<Lading>> InsertEMS(int currentUserId, int customerContactId, int serviceId, string code, int statusId = (int)StatusLading.DaLayHang);
         Task<ResultModel<dynamic>> UpdateEMS();
@@ -71,6 +71,9 @@ namespace NascoWebAPI.Data
         string GetCode(int id);
         Task<IEnumerable<int>> GetListIdByPartner(int partnerId);
         Task<IEnumerable<int>> GetListIdHasParner();
+        dynamic GetCustomerPromotionCode(int cusId,DateTime? fromDate = null, DateTime? toDate = null, string promotionCode = null, string codeOfPromotion = null,
+                                                    bool? isActive = null, int? pageNumber = null, int? pageSize = null);
+        IEnumerable<bool> UsingPromotionCode(string promotionCode);
     }
     public interface ILocationRepository : IRepository<Location>
     {
@@ -103,7 +106,7 @@ namespace NascoWebAPI.Data
         Task<ResultModel<ComputedPriceModel>> ComputedBox(LadingViewModel lading);
         Dictionary<int, double> GetListPrice(double weight, int customerId = 0, int state_from = 0, int state_to = 0, int receive_delivery = 0);
         double GetPrice(double weight, int serviceId = 0, int priceListId = 0, int state_from = 0, int state_to = 0, int receive_delivery = 0);
-        Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null);
+        Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null, int? number = null);
     }
     public interface IPriceListRepository : IRepository<PriceList>
     {

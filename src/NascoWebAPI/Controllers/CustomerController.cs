@@ -55,7 +55,7 @@ namespace NascoWebAPI.Controllers
                                    || (c.CustomerName != null && c.CustomerName.ToUpper().Contains(s.ToUpper()))
                                    || (c.CustomerCode != null && c.CustomerCode.ToUpper().Contains(s.ToUpper())))
                                    , null, null, 10
-                                   , inc => inc.City , inc => inc.District);
+                                   , inc => inc.City, inc => inc.District);
                 return Json(result);
             }
             return JsonError("null");
@@ -72,6 +72,23 @@ namespace NascoWebAPI.Controllers
             }
             return JsonError("null");
         }
+
+        [HttpGet("GetCustomerPromotionCode")]
+        public JsonResult GetCustomerPromotionCode(int cusId = 2, DateTime? fromDate = null, DateTime? toDate = null, string promotionCode = null, string codeOfPromotion = null,
+                                                    bool? isActive = null, int? pageNumber = null, int? pageSize = null)
+        {
+            var data = _customerRepository.GetCustomerPromotionCode(cusId, fromDate, toDate, promotionCode, codeOfPromotion, isActive, pageNumber, pageSize);
+            return JsonSuccess(data);
+        }
+
+        [HttpGet("UsingPromotionCode")]
+        public JsonResult UsingPromotionCode(string promotionCode)
+        {
+            var data = _customerRepository.UsingPromotionCode(promotionCode);
+            return JsonSuccess(data);
+        }
+
+
         #endregion
     }
 }

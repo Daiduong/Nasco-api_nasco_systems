@@ -623,7 +623,7 @@ namespace NascoWebAPI.Data
                                                 cityRecipientId = poMediate.CityId ?? 0;
                                             }
                                         }
-                                        chargeDefault = await priceRepository.ComputedBox(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, cityRecipientId, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId,item.UnitGroupId);
+                                        chargeDefault = await priceRepository.ComputedBox(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, cityRecipientId, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId,item.UnitGroupId,item.Number);
                                     }
                                 }
                             }
@@ -704,7 +704,7 @@ namespace NascoWebAPI.Data
             }
             return result;
         }
-        public async Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null)
+        public async Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null,int? number = null)
         {
             double priceDefaul = 0;
             if (!(await _context.PriceLists.AnyAsync(o => o.PriceListID == priceListId)))
@@ -787,6 +787,10 @@ namespace NascoWebAPI.Data
                                         weightSubtract = weightSubtract == 0 ? (setupWeight.SWPlus ?? 0) : weightSubtract;
                                         priceDefaul += totalPrice * Math.Ceiling(weightSubtract / ((setupWeight.SWPlus ?? 0) > 0 ? setupWeight.SWPlus.Value : 1));
                                         weightTemp = setupWeight.SWFrom.Value - 0.00000001;
+                                        break;
+                                    case (int)StatusFormula.Formula8:
+                                        priceDefaul += totalPrice* number.Value;
+                                        weightTemp = -1;
                                         break;
                                 }
 

@@ -274,7 +274,9 @@ namespace NascoWebAPI.Helper.Common
         [Description("Nhân với trọng lượng")]
         Formula2 = 2,
         [Description("Nhân số vượt định mức")]
-        Formula3 = 3
+        Formula3 = 3,
+        [Description("Nhân số kiện")]
+        Formula8 = 8
     }
     public enum StatusBK
     {
