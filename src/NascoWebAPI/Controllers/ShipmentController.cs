@@ -298,8 +298,8 @@ namespace NascoWebAPI.Controllers
             }
             return JsonError("Không tìm thấy thông tin tài khoản");
         }
-        [HttpGet("Getlading")]
-        public async Task<JsonResult> Getlading(string ladingCode, string cols = null)
+        [HttpGet("GetSingleLading")]
+        public async Task<JsonResult> GetSingleLading(string ladingCode, string cols = null)
         {
             var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
             var user = await _officeRepository.GetFirstAsync(o => o.UserName == jwtDecode.Subject);
