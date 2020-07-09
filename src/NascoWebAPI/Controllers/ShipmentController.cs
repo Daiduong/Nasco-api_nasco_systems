@@ -298,6 +298,40 @@ namespace NascoWebAPI.Controllers
             }
             return JsonError("Không tìm thấy thông tin tài khoản");
         }
+        [HttpGet("Getlading")]
+        public async Task<JsonResult> Getlading(string ladingCode, string cols = null)
+        {
+            var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
+            var user = await _officeRepository.GetFirstAsync(o => o.UserName == jwtDecode.Subject);
+
+            if (user != null)
+            {
+                Lading result = new Lading();
+                Expression<Func<Lading, object>>[] includeProperties = getInclude(cols);
+                try
+                {
+                    result = await _ladingRepository.GetSingleAsync(l => l.Code == ladingCode, includeProperties: includeProperties);
+                }
+                catch (Exception ex)
+                {
+                    return JsonError("Không tìm thấy thông tin vận đơn");
+                }
+                var ldHistory = await _ladingRepository.GetLastLadingHistoryAsync(result.Id);
+                var jsonLading = Newtonsoft.Json.JsonConvert.SerializeObject(result,
+                        Formatting.Indented,
+        new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() });
+                var jsonLatLng = Newtonsoft.Json.JsonConvert.SerializeObject(new { latCurrent = ldHistory.Lat, lngCurrent = ldHistory.Lng });
+                JObject jOLading = JObject.Parse(jsonLading);
+                JObject jOLatLng = JObject.Parse(jsonLatLng);
+
+                jOLading.Merge(jOLatLng, new JsonMergeSettings
+                {
+                    MergeArrayHandling = MergeArrayHandling.Union
+                });
+                return Json(jOLading);
+            }
+            return JsonError("Không tìm thấy thông tin tài khoản");
+        }
         [HttpGet("GetSingleLadingTemp")]
         public async Task<JsonResult> GetSingleLadingTemp(string ladingCode, string cols = null)
         {
@@ -394,7 +428,7 @@ namespace NascoWebAPI.Controllers
                 ladingModel.POFrom = user.PostOfficeId;
                 ladingModel.UpdateServiceOthers();
                 var computed = (await _priceRepository.Computed(ladingModel));
-                if(ladingModel.isCaculatePerPackage == true)
+                if (ladingModel.isCaculatePerPackage == true)
                 {
                     computed = (await _priceRepository.ComputedBox(ladingModel));
                 }
@@ -539,7 +573,7 @@ namespace NascoWebAPI.Controllers
                 #endregion
 
                 #region Thông tin
-                lading.isCaculatePerPackage = ladingModel.isCaculatePerPackage? ladingModel.isCaculatePerPackage: false;
+                lading.isCaculatePerPackage = ladingModel.isCaculatePerPackage ? ladingModel.isCaculatePerPackage : false;
                 lading.PartnerCode = ladingModel.PartnerCode;
                 lading.State = (int)StatusSystem.Enable;
                 lading.CreateDate = DateTime.Now;
@@ -1378,7 +1412,7 @@ namespace NascoWebAPI.Controllers
         [HttpGet("GetByStatusCurrentEmp")]
         public JsonResult GetByStatusCurrentEmp(int? offId, string code = null, int? status = null, DateTime? startTime = null, DateTime? endTime = null, int? pageNum = 0, int? pageSize = 20)
         {
-            if(!offId.HasValue)
+            if (!offId.HasValue)
             {
                 return JsonError("Biker không tồn tại");
             }
