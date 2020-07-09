@@ -13,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
+using System.Data.SqlClient;
+using NascoWebAPI.Models.Response;
 
 namespace NascoWebAPI.Data
 {
@@ -572,6 +574,37 @@ namespace NascoWebAPI.Data
             }
             return _context.Ladings.Where(expresionFinal).Skip(pageNum.Value * pageSize.Value).Take(pageSize.Value).ToList();
         }
+        public List<ReportAccumulateResponseModel> ReportAccumulate(int? customerId = null, DateTime? fromDate = null, DateTime? toDate = null, bool? isUsed = null, int? pageNumber = null, int? pageSize = null)
+        {
+            SqlParameter CustomerId = new SqlParameter("@CustomerId", customerId);
+            if (!customerId.HasValue) CustomerId.Value = DBNull.Value;
+
+
+            SqlParameter FromDate = new SqlParameter("@FromDate", fromDate);
+            if (!fromDate.HasValue) FromDate.Value = DBNull.Value;
+
+            SqlParameter ToDate = new SqlParameter("@ToDate", toDate);
+            if (!toDate.HasValue) ToDate.Value = DBNull.Value;
+
+            SqlParameter PageNumber = new SqlParameter("@PageNumber", pageNumber);
+            if (!pageNumber.HasValue) PageNumber.Value = DBNull.Value;
+
+            SqlParameter PageSize = new SqlParameter("@PageSize", pageSize);
+            if (!pageSize.HasValue) PageSize.Value = DBNull.Value;
+
+            SqlParameter IsUsed = new SqlParameter("@IsUsed", isUsed);
+            if (!isUsed.HasValue) IsUsed.Value = DBNull.Value;
+
+            List<SqlParameter> sqlParameters = new List<SqlParameter>();
+            sqlParameters.Add(CustomerId);
+            sqlParameters.Add(FromDate);
+            sqlParameters.Add(ToDate);
+            sqlParameters.Add(IsUsed);
+            sqlParameters.Add(PageNumber);
+            sqlParameters.Add(PageSize);
+            return SqlHelper.ExecuteQuery<ReportAccumulateResponseModel>(_context, "Proc_ReportAccumulate", sqlParameters).ToList();
+        }
+
     }
 
 }
