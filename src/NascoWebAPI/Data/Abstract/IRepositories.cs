@@ -2,6 +2,7 @@
 using NascoWebAPI.Data.Entities;
 using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
+using NascoWebAPI.Models.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +32,7 @@ namespace NascoWebAPI.Data
         Task<ResultModel<Lading>> InsertEMS(int currentUserId, int customerContactId, int serviceId, string code, int statusId = (int)StatusLading.DaLayHang);
         Task<ResultModel<dynamic>> UpdateEMS();
         Task<ResultModel<dynamic>> UpdateToPartner(int partnerId, int ladingId, int poCurrentId, int statusId, DateTime? datetime);
+        List<ReportAccumulateResponseModel> ReportAccumulate(int? customerId = null, DateTime? fromDate = null, DateTime? toDate = null, bool? isUsed = null, int? pageNumber = null, int? pageSize = null);
     }
     public interface ILadingHistoryRepository : IRepository<LadingHistory>
     {

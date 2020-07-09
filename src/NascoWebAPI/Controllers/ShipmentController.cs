@@ -1245,7 +1245,7 @@ namespace NascoWebAPI.Controllers
                             }
                             if ((int)StatusLading.ThanhCong == lading.Status)
                             {
-                                if(PaymentType.Point.GetHashCode() == lading.PaymentType)
+                                if(PaymentType.Point.GetHashCode() != lading.PaymentType)
                                 {
                                     var pointofCus = _context.CustomerPoints.Where(x => x.CustomerId == lading.SenderId).FirstOrDefault();
                                     pointofCus.AllPoint += lading.Point.GetValueOrDefault();
@@ -1436,6 +1436,12 @@ namespace NascoWebAPI.Controllers
         {
             return JsonSuccess(await _iEMSService.GetLading(code));
         }
+        [HttpGet("ReportAccumulate")]
+        public JsonResult ReportAccumulate(int? customerId = null, DateTime? fromDate = null, DateTime? toDate = null, bool? isUsed = null, int? pageNumber = null, int? pageSize = null)
+        {
+            var data = _ladingRepository.ReportAccumulate(customerId, fromDate, toDate, isUsed, pageNumber, pageSize);
+            return JsonSuccess(data);
+        }
         #endregion
         protected override void Dispose(bool disposing)
         {
@@ -1548,5 +1554,7 @@ namespace NascoWebAPI.Controllers
             return includeProperties.ToArray();
         }
         #endregion
+
+
     }
 }
