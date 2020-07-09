@@ -1245,12 +1245,15 @@ namespace NascoWebAPI.Controllers
                             }
                             if ((int)StatusLading.ThanhCong == lading.Status)
                             {
-                                var pointofCus = _context.CustomerPoints.Where(x => x.CustomerId == lading.SenderId).FirstOrDefault();
-                                pointofCus.AllPoint += lading.Point.GetValueOrDefault();
-                                pointofCus.currentpoint += lading.Point.GetValueOrDefault();
-                                pointofCus.RankId = _context.Ranks.Where(x => x.MinPoint <= pointofCus.AllPoint && x.MaxPoint >= pointofCus.AllPoint && x.IsEnabled == true).FirstOrDefault().Id;
-                                _context.CustomerPoints.Update(pointofCus);
-                                _context.SaveChanges();
+                                if(PaymentType.Point.GetHashCode() == lading.PaymentType)
+                                {
+                                    var pointofCus = _context.CustomerPoints.Where(x => x.CustomerId == lading.SenderId).FirstOrDefault();
+                                    pointofCus.AllPoint += lading.Point.GetValueOrDefault();
+                                    pointofCus.currentpoint += lading.Point.GetValueOrDefault();
+                                    pointofCus.RankId = _context.Ranks.Where(x => x.MinPoint <= pointofCus.AllPoint && x.MaxPoint >= pointofCus.AllPoint && x.IsEnabled == true).FirstOrDefault().Id;
+                                    _context.CustomerPoints.Update(pointofCus);
+                                    _context.SaveChanges();
+                                }
                             }
                             if ((int)StatusLading.DangLayHang == lading.Status)
                             {

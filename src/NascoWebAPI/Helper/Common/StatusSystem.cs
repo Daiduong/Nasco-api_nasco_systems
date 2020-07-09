@@ -244,7 +244,9 @@ namespace NascoWebAPI.Helper.Common
         [Description("Người nhận thanh toán")]
         Recipient = 2,
         [Description("Đã thanh toán")]
-        Done = 3
+        Done = 3,
+        [Description("Thanh toán bằng điểm")]
+        Point = 8
     }
     //Loại đóng gói
     public enum PackType
