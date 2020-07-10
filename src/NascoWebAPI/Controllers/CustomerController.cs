@@ -74,7 +74,7 @@ namespace NascoWebAPI.Controllers
         }
 
         [HttpGet("GetCustomerPromotionCode")]
-        public JsonResult GetCustomerPromotionCode(int cusId = 2, DateTime? fromDate = null, DateTime? toDate = null, string promotionCode = null, string codeOfPromotion = null,
+        public JsonResult GetCustomerPromotionCode(int cusId , DateTime? fromDate = null, DateTime? toDate = null, string promotionCode = null, string codeOfPromotion = null,
                                                     bool? isActive = null, int? pageNumber = null, int? pageSize = null)
         {
             var data = _customerRepository.GetCustomerPromotionCode(cusId, fromDate, toDate, promotionCode, codeOfPromotion, isActive, pageNumber, pageSize);
@@ -88,6 +88,19 @@ namespace NascoWebAPI.Controllers
             return JsonSuccess(data);
         }
 
+        [HttpGet("GetCustomerMessage")]
+        public JsonResult GetCustomerMessage(int customerId)
+        {
+            var data = _customerRepository.GetCustomerMessage(customerId);
+            return JsonSuccess(data);
+        }
+
+        [HttpGet("GetCustomerPoint")]
+        public JsonResult GetCustomerPoint(int customerId)
+        {
+            var data = _customerRepository.GetCustomerPoint(customerId);
+            return JsonSuccess(data);
+        }
 
         #endregion
     }
