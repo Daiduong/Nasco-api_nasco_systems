@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NascoWebAPI.Data.Entities;
+using NascoWebAPI.Models;
 using NascoWebAPI.Models.Response;
 using System;
 using System.Collections.Generic;
@@ -79,6 +81,17 @@ namespace NascoWebAPI.Data
             List<SqlParameter> sqlParameters = new List<SqlParameter>();
             sqlParameters.Add(PromotionCode);
             return SqlHelper.ExecuteQuery<bool>(_context, "UsingPromotionCode", sqlParameters);
+        }
+
+        public dynamic GetCustomerMessage(int customerId)
+        {
+            var result = _context.CustomerMessages.Where(x => x.CustomerId == customerId).Join(_context.MarketingMessages, cm => cm.MarketingMessageId, mm => mm.Id,
+                  (cm, mm) => new { cm.Id, cm.CustomerId, cm.IsPush, mm.IsEnabled, mm.Title, mm.Content }).Where(x=>x.IsPush == true) ;
+            return result.ToList();
+        }
+            public IEnumerable<CustomerPoint> GetCustomerPoint(int customerId)
+        {
+           return _context.CustomerPoints.Where(x => x.CustomerId == customerId);
         }
     }
 }

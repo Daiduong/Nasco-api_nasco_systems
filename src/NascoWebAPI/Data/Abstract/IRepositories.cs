@@ -76,6 +76,8 @@ namespace NascoWebAPI.Data
         dynamic GetCustomerPromotionCode(int cusId,DateTime? fromDate = null, DateTime? toDate = null, string promotionCode = null, string codeOfPromotion = null,
                                                     bool? isActive = null, int? pageNumber = null, int? pageSize = null);
         IEnumerable<bool> UsingPromotionCode(string promotionCode);
+        dynamic GetCustomerMessage(int customerId);
+        IEnumerable<CustomerPoint> GetCustomerPoint(int customerId);
     }
     public interface ILocationRepository : IRepository<Location>
     {
