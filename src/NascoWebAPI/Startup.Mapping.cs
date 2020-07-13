@@ -55,6 +55,7 @@ namespace NascoWebAPI
             services.AddScoped<ICustomerContactRepository, CustomerContactRepository>();
             services.AddScoped<IFahamiClient, FahamiClient>();
             services.AddScoped<IUnitGroupRepository, UnitGroupRepository>();
+            services.AddScoped<ITPLEMSRepository, TPLEMSRepository>();
 
         }
     }

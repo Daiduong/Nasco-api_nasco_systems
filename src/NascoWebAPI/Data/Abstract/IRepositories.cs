@@ -73,7 +73,7 @@ namespace NascoWebAPI.Data
         string GetCode(int id);
         Task<IEnumerable<int>> GetListIdByPartner(int partnerId);
         Task<IEnumerable<int>> GetListIdHasParner();
-        dynamic GetCustomerPromotionCode(int cusId,DateTime? fromDate = null, DateTime? toDate = null, string promotionCode = null, string codeOfPromotion = null,
+        dynamic GetCustomerPromotionCode(int cusId, DateTime? fromDate = null, DateTime? toDate = null, string promotionCode = null, string codeOfPromotion = null,
                                                     bool? isActive = null, int? pageNumber = null, int? pageSize = null);
         IEnumerable<bool> UsingPromotionCode(string promotionCode);
         dynamic GetCustomerMessage(int customerId);
@@ -175,5 +175,13 @@ namespace NascoWebAPI.Data
     public interface IUnitGroupRepository : IRepository<UnitGroups>
     {
         List<Proc_GetAllUnitGroup_Result> _GetAllUnitGroup();
+    }
+    public interface ITPLEMSRepository : IRepository<Lading>
+    {
+        dynamic GetInventory();
+        Task<string> InsertInventory(string name, string username,
+                        string phone, string provinceCode, string districtCode, string wardCode, string address);
+        Task<string> CreateShipment(CreateShipment model);
+
     }
 }
