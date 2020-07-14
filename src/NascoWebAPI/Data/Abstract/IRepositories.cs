@@ -78,6 +78,8 @@ namespace NascoWebAPI.Data
         IEnumerable<bool> UsingPromotionCode(string promotionCode);
         dynamic GetCustomerMessage(int customerId);
         IEnumerable<CustomerPoint> GetCustomerPoint(int customerId);
+        CustomerPoint InsertCustomerPoint(CustomerPoint customerPoint);
+        dynamic CheckAndInsertCTKM(int customerId);
     }
     public interface ILocationRepository : IRepository<Location>
     {

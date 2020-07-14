@@ -107,6 +107,8 @@ namespace NascoWebAPI
         public virtual DbSet<UnitGroups> UnitGroups { get; set; }
         public virtual DbSet<CustomerMessage> CustomerMessages { get; set; }
         public virtual DbSet<MarketingMessage> MarketingMessages { get; set; }
+        public virtual DbSet<ProgramPromotion> ProgramPromotion { get; set; }
+        public virtual DbSet<CustomerProgramPromotion> CustomerProgramPromotion { get; set; }
 
         #region View
         public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }

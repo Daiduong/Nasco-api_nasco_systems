@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using NascoWebAPI.Data;
 using NascoWebAPI.Helper.JwtBearerAuthentication;
 using Microsoft.Extensions.Logging;
+using NascoWebAPI.Data.Entities;
 
 namespace NascoWebAPI.Controllers
 {
@@ -100,6 +101,30 @@ namespace NascoWebAPI.Controllers
         {
             var data = _customerRepository.GetCustomerPoint(customerId);
             return JsonSuccess(data);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("InsertCustomerPoint")]
+        public JsonResult InsertCustomerPoint(CustomerPoint model)
+        {
+            var json = _customerRepository.InsertCustomerPoint(model);
+            return JsonSuccess(json);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("CheckAndInsertCTKM")]
+        public JsonResult CheckAndInsertCTKM(int customerId)
+        {
+            var res = _customerRepository.CheckAndInsertCTKM(customerId);           
+                switch (res)
+                {
+                    case 1:
+                        return JsonSuccess(null,"Customer not found !");
+                    case 2:
+                        return JsonSuccess(null, "ProgramPromotion not found !");
+                    default:
+                        return JsonSuccess(null, "Add customer to program promotion !");
+                }            
         }
 
         #endregion
