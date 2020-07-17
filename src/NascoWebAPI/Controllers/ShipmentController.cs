@@ -1250,7 +1250,11 @@ namespace NascoWebAPI.Controllers
                                     var pointofCus = _context.CustomerPoints.Where(x => x.CustomerId == lading.SenderId).FirstOrDefault();
                                     pointofCus.AllPoint += lading.Point.GetValueOrDefault();
                                     pointofCus.currentpoint += lading.Point.GetValueOrDefault();
-                                    pointofCus.RankId = _context.Ranks.Where(x => x.MinPoint <= pointofCus.AllPoint && x.MaxPoint >= pointofCus.AllPoint && x.IsEnabled == true).FirstOrDefault().Id;
+                                    var rankID = _context.Ranks.Where(x => x.MinPoint <= pointofCus.AllPoint && x.MaxPoint >= pointofCus.AllPoint && x.IsEnabled == true).FirstOrDefault();
+                                    if (rankID != null)
+                                    {
+                                        pointofCus.RankId = (int)rankID.Id;
+                                    }
                                     _context.CustomerPoints.Update(pointofCus);
                                     _context.SaveChanges();
                                 }

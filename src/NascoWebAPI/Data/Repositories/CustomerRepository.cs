@@ -108,7 +108,7 @@ namespace NascoWebAPI.Data
             var getCustomer = _context.Customers.Single(x => x.CustomerID == customerId);
             if (getCustomer != null)
             {
-                var checkProgramIndate = _context.ProgramPromotion.OrderByDescending(x=>x.Id).FirstOrDefault(x => x.PromotionTypeId == 1 && x.IsEnabled == true);
+                var checkProgramIndate = _context.ProgramPromotion.OrderByDescending(x=>x.Id).FirstOrDefault(x => x.PromotionTypeId == 1 && DateTime.Now > x.StartDate && DateTime.Now < x.EndDate && x.IsEnabled == true);
                 if (checkProgramIndate != null)
                 {
                     var now = DateTime.Now;
@@ -122,6 +122,8 @@ namespace NascoWebAPI.Data
                     cus.IsActive = true;
                     cus.IsEnabled = true;
                     cus.IsPush = false;
+                    cus.CustomerId = getCustomer.CustomerID;
+                    cus.IsPush = true;
                     cus.PromotionCode = "PNAS" + checkProgramIndate.Id + getCustomer.CustomerID;
                     cus.Value = rd.Next(min, max);
                     _context.CustomerProgramPromotion.Add(cus);

@@ -52,5 +52,54 @@ namespace NascoWebAPI.Helper
                 return (int)StructureType.DOCUMENT;
             return (int)StructureType.GOODS;
         }
+
+        public static int StatusEMSMapping(int status)
+        {
+            int rs = 0;
+            switch (status)
+            {
+                case 1:
+                    // code block
+                    rs = (int)StatusMapping.DATAO;
+                    break;
+                case 2:
+                    // code block
+                    rs = (int)StatusMapping.CHOLAYHANG;
+                    break;
+                case 3:
+                    // code block
+                    rs = (int)StatusMapping.DALAYHANG;
+                    break;
+                case 4:
+                    // code block
+                    rs = (int)StatusMapping.DANGVANCHUYEN;
+                    break;
+                case 5:
+                    // code block
+                    rs = (int)StatusMapping.DANGPHATHANG;
+                    break;
+                case 6:
+                    // code block
+                    rs = (int)StatusMapping.PHATKHONGTHANHCONG;
+                    break;
+                case 7:
+                    // code block
+                    rs = (int)StatusMapping.PHATTHANHCONG;
+                    break;
+                case 8:
+                    // code block
+                    rs = (int)StatusMapping.CHUYENHOAN;
+                    break;
+                case 9:
+                    // code block
+                    rs = (int)StatusMapping.DAHUY;
+                    break;
+                default:
+                    // code block
+                    rs = 0;
+                    break;
+            }
+            return rs;
+        }
     }
 }

@@ -127,6 +127,29 @@ namespace NascoWebAPI.Controllers
                 }            
         }
 
+        [HttpPost("UpdateInstanceIDToken")]
+        public async Task<JsonResult> UpdateInstanceIDToken([FromBody]Customer model)
+        {
+            var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
+            var user = await _customerRepository.GetSingleAsync(u => u.UserName.ToLower().Equals(jwtDecode.Subject.ToLower()) && u.State == 0);
+            if (user != null)
+            {
+                try
+                {
+                    user.InstanceIDToken = model.InstanceIDToken;
+                    _customerRepository.Update(user);
+                    _customerRepository.SaveChanges();
+                    return JsonSuccess(user);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Update Error: " + ex.Message, ex);
+                }
+            }
+            return JsonError("null");
+        }
+
+
         #endregion
     }
 }
