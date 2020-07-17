@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using NascoWebAPI.Data;
 using NascoWebAPI.Helper.JwtBearerAuthentication;
 using Microsoft.Extensions.Logging;
+using NascoWebAPI.Data.Entities;
 
 namespace NascoWebAPI.Controllers
 {
@@ -101,6 +102,53 @@ namespace NascoWebAPI.Controllers
             var data = _customerRepository.GetCustomerPoint(customerId);
             return JsonSuccess(data);
         }
+
+        [AllowAnonymous]
+        [HttpGet("InsertCustomerPoint")]
+        public JsonResult InsertCustomerPoint(CustomerPoint model)
+        {
+            var json = _customerRepository.InsertCustomerPoint(model);
+            return JsonSuccess(json);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("CheckAndInsertCTKM")]
+        public JsonResult CheckAndInsertCTKM(int customerId)
+        {
+            var res = _customerRepository.CheckAndInsertCTKM(customerId);           
+                switch (res)
+                {
+                    case 1:
+                        return JsonSuccess(null,"Customer not found !");
+                    case 2:
+                        return JsonSuccess(null, "ProgramPromotion not found !");
+                    default:
+                        return JsonSuccess(null, "Add customer to program promotion !");
+                }            
+        }
+
+        [HttpPost("UpdateInstanceIDToken")]
+        public async Task<JsonResult> UpdateInstanceIDToken([FromBody]Customer model)
+        {
+            var jwtDecode = JwtDecode(Request.Headers["Authorization"].ToString().Split(' ')[1]);
+            var user = await _customerRepository.GetSingleAsync(u => u.UserName.ToLower().Equals(jwtDecode.Subject.ToLower()) && u.State == 0);
+            if (user != null)
+            {
+                try
+                {
+                    user.InstanceIDToken = model.InstanceIDToken;
+                    _customerRepository.Update(user);
+                    _customerRepository.SaveChanges();
+                    return JsonSuccess(user);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Update Error: " + ex.Message, ex);
+                }
+            }
+            return JsonError("null");
+        }
+
 
         #endregion
     }

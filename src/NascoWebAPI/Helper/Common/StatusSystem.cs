@@ -398,4 +398,26 @@ namespace NascoWebAPI.Helper.Common
         HAN = 1,
         SGN = 50
     }
+
+    public enum StatusMapping
+    {       
+        //"name": "Đã tạo"
+        DATAO = 9,
+        //"name": "Chờ lấy hàng"
+        CHOLAYHANG = 1,
+        //"name": "Đã lấy hàng"
+        DALAYHANG = 2,
+        //"name": "Đang vận chuyển"
+        DANGVANCHUYEN = 36,
+        //"name": "Đang phát hàng"
+        DANGPHATHANG = 5,
+        //"name": "Phát không thành công"
+        PHATKHONGTHANHCONG = 17,
+        //"name": "Phát thành công"
+        PHATTHANHCONG = 6,
+        //"name": "Chuyển Hoàn"
+        CHUYENHOAN = 8,
+        //"name": "Đơn Hàng Hủy"
+        DAHUY = 21
+    }
 }
