@@ -181,7 +181,12 @@ namespace NascoWebAPI.Data
         dynamic GetInventory();
         Task<string> InsertInventory(string name, string username,
                         string phone, string provinceCode, string districtCode, string wardCode, string address);
-        Task<string> CreateShipment(CreateShipment model);
+        Task<ResultCreteShipment> CreateShipment(CreateShipment model);
+        List<Location> map();
+        List<DistrictTemp> DistrictTemp();
+        bool UpdateDistrictTemp(List<DistrictTemp> model);
+        DistrictTemp GetEMSArea(int districtId);
+        dynamic EMSCallBack(RequestEMS model);
 
     }
 }
