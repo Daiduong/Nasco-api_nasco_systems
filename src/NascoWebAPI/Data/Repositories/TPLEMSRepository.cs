@@ -1,4 +1,5 @@
 ﻿using NascoWebAPI.Data.Entities;
+using NascoWebAPI.Helper;
 using NascoWebAPI.Helper.Common;
 using NascoWebAPI.Models;
 using Newtonsoft.Json;
@@ -38,13 +39,13 @@ namespace NascoWebAPI.Data
 
         public dynamic EMSCallBack(RequestEMS model)
         {
-           var lading = _context.Ladings.Where(x => x.PartnerCode == model.tracking_code).Single();
-            
-            if(model.status_code == 6)
+            var lading = _context.Ladings.Where(x => x.PartnerCode == model.tracking_code).Single();
+            lading.Status = EMSHelper.StatusEMSMapping(model.status_code);
+            if (model.status_code == 6)
             {
                 lading.FinishDate = DateTime.Parse(DateTime.Parse(model.datetime).ToString("dd-MM-yyyy HH:mm:ss"));
             }
-            if(model.status_code == 8)
+            if (model.status_code == 8)
             {
                 lading.Return = true;
             }
@@ -55,7 +56,7 @@ namespace NascoWebAPI.Data
                 Location = model.locate,
                 //var office = iOfficerRepository.GetSingle(o => o.OfficerID == entity.OfficerId);
                 //var postOffice = iDepartmentRepository.GetSingle(o => o.DeparmentID == office.DeparmentID);
-                PostOfficeId =lading.POCurrent,
+                PostOfficeId = lading.POCurrent,
                 Status = 1,
                 DateTime = DateTime.Now,
                 CreatedDate = DateTime.Now,
@@ -109,12 +110,17 @@ namespace NascoWebAPI.Data
                 address = address,
 
             };
-
+            var json = JsonConvert.SerializeObject(datapost);
             var result = await client.PostAsJsonAsync(url, datapost);
-
             var _response = result.Content;
             var respone = _response.ReadAsStringAsync().Result.ToString();
             string check = JsonConvert.DeserializeObject(respone).ToString();
+            EMSLogInventoryTable log = new EMSLogInventoryTable();
+            log.RequestUrl = url;
+            log.RequestContent = json;
+            log.Response = check;
+            _context.EMSLogInventoryTables.Add(log);
+            _context.SaveChanges();
             return check;
         }
         public async Task<ResultCreteShipment> CreateShipment(CreateShipment model)
@@ -150,13 +156,16 @@ namespace NascoWebAPI.Data
 
             //var stt = datapost.model;// ToString();
             var json = JsonConvert.SerializeObject(model);
-
             var result = await client.PostAsJsonAsync(url, datapost);
-
             var _response = result.Content;
             var respone = _response.ReadAsStringAsync().Result.ToString();
-
             var check = JsonConvert.DeserializeObject<ResultCreteShipment>(respone);
+            EMSLogShipmentTable log = new EMSLogShipmentTable();
+            log.RequestUrl = url;
+            log.RequestContent = json;
+            log.Response = respone;
+            _context.EMSLogShipmentTables.Add(log);
+            _context.SaveChanges();
             return check;
         }
     }
