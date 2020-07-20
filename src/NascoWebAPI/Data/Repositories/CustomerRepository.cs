@@ -85,7 +85,7 @@ namespace NascoWebAPI.Data
         public dynamic GetCustomerMessage(int customerId)
         {
             var result = _context.CustomerMessages.Where(x => x.CustomerId == customerId).Join(_context.MarketingMessages, cm => cm.MarketingMessageId, mm => mm.Id,
-                  (cm, mm) => new { cm.Id, cm.CustomerId, cm.IsPush, mm.IsEnabled, mm.Title, mm.Content }).Where(x => x.IsPush == true);
+                  (cm, mm) => new { cm.Id, cm.CustomerId, cm.IsPush, mm.IsEnabled, mm.Title, mm.Content,cm.CreatedWhen }).Where(x => x.IsPush == true);
             return result.ToList();
         }
         public IEnumerable<CustomerPoint> GetCustomerPoint(int customerId)
