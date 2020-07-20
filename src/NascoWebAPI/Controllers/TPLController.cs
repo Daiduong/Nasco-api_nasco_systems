@@ -119,7 +119,7 @@ namespace NascoWebAPI.Controllers
         public class EMSResponseCallBack
         {
             public string code { get; set; }
-            public string transection { get; set; }
+            public string transaction { get; set; }
         }
         public static string locDau(string str)
         {
