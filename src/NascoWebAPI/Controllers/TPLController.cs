@@ -71,10 +71,10 @@ namespace NascoWebAPI.Controllers
             }
             try
             {
-                response.transection = transection;
+                response.transaction = transection;
                 var json = _tplemsRepository.EMSCallBack(model);
                 response.code = "success";
-                response.transection = transection;
+                response.transaction = transection;
                 emsLog.Response = JsonConvert.SerializeObject(response).ToString();
                 _tplemsRepository.LogEMSCallBack(emsLog);
                 return response;
@@ -82,7 +82,7 @@ namespace NascoWebAPI.Controllers
             catch( Exception ex)
             {
                 response.code = "error";
-                response.transection = transection;
+                response.transaction = transection;
                 emsLog.Response = JsonConvert.SerializeObject(response).ToString();
                 _tplemsRepository.LogEMSCallBack(emsLog);
                 return response;
