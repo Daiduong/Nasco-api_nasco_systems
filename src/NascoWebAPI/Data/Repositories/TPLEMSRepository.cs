@@ -5,6 +5,7 @@ using NascoWebAPI.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -39,11 +40,12 @@ namespace NascoWebAPI.Data
 
         public dynamic EMSCallBack(RequestEMS model)
         {
-            var lading = _context.Ladings.Where(x => x.PartnerCode == model.tracking_code).Single();
-            lading.Status = EMSHelper.StatusEMSMapping(model.status_code);
+            var lading = _context.Ladings.Where(x => x.PartnerCode == model.tracking_code).SingleOrDefault();
+            int status = (int)EMSHelper.StatusEMSMapping(model.status_code);
+            lading.Status = status;
             if (model.status_code == 6)
             {
-                lading.FinishDate = DateTime.Parse(DateTime.Parse(model.datetime).ToString("dd-MM-yyyy HH:mm:ss"));
+                lading.FinishDate = DateTime.ParseExact(model.datetime, "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
             }
             if (model.status_code == 8)
             {
@@ -151,7 +153,6 @@ namespace NascoWebAPI.Data
                 service = model.service,
                 Checked = model.Checked,
                 fragile = model.fragile,
-
             };
 
             //var stt = datapost.model;// ToString();
@@ -209,16 +210,17 @@ public class ResultCreteShipment
     public string code { get; set; }
     public string message { get; set; }
     public data data { get; set; }
-    public double money_collect { get; set; }
-    public int estimate { get; set; }
-    public string tracking_code { get; set; }
-    public string status_code { get; set; }
+
 
 }
 public class data
 {
     public feedata fee { get; set; }
     public vasdata vas { get; set; }
+    public double money_collect { get; set; }
+    public int estimate { get; set; }
+    public string tracking_code { get; set; }
+    public string status_code { get; set; }
 }
 public class feedata
 {
