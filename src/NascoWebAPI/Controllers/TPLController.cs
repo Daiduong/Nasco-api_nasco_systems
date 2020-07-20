@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using NascoWebAPI.Data;
+using NascoWebAPI.Data.Entities;
+using Newtonsoft.Json;
 
 namespace NascoWebAPI.Controllers
 {
@@ -57,9 +59,12 @@ namespace NascoWebAPI.Controllers
         [HttpPost("EMSCallBack")]
         public EMSResponseCallBack EMSCallBack([FromBody] RequestEMS model)
         {
+            EMSLogCallbackTable emsLog = new EMSLogCallbackTable();
+            emsLog.RequestContent = JsonConvert.SerializeObject(model).ToString();
             EMSResponseCallBack response = new EMSResponseCallBack();
             var transection = Request.Headers["ems-transaction"];
-            if(string.IsNullOrWhiteSpace(transection))
+            emsLog.RequestHeader = transection;
+            if (string.IsNullOrWhiteSpace(transection))
             {
                 response.code = "error/transectionisnull";
                 return response;
@@ -70,12 +75,16 @@ namespace NascoWebAPI.Controllers
                 var json = _tplemsRepository.EMSCallBack(model);
                 response.code = "success";
                 response.transection = transection;
+                emsLog.Response = JsonConvert.SerializeObject(response).ToString();
+                _tplemsRepository.LogEMSCallBack(emsLog);
                 return response;
             }
             catch( Exception ex)
             {
                 response.code = "error";
                 response.transection = transection;
+                emsLog.Response = JsonConvert.SerializeObject(response).ToString();
+                _tplemsRepository.LogEMSCallBack(emsLog);
                 return response;
             }
         }

@@ -189,6 +189,7 @@ namespace NascoWebAPI.Data
         bool UpdateDistrictTemp(List<DistrictTemp> model);
         DistrictTemp GetEMSArea(int districtId);
         dynamic EMSCallBack(RequestEMS model);
+        bool LogEMSCallBack(EMSLogCallbackTable data);
 
     }
 }

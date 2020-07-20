@@ -32,6 +32,12 @@ namespace NascoWebAPI.Data
         {
             return _context.DistrictTemps.Where(x => x.Id > 0).ToList();
         }
+        public bool LogEMSCallBack(EMSLogCallbackTable data )
+        {
+            _context.EMSLogCallbackTables.Add(data);
+            _context.SaveChanges();
+            return true;
+        }
 
         public DistrictTemp GetEMSArea(int districtId)
         {
@@ -59,12 +65,13 @@ namespace NascoWebAPI.Data
                 //var office = iOfficerRepository.GetSingle(o => o.OfficerID == entity.OfficerId);
                 //var postOffice = iDepartmentRepository.GetSingle(o => o.DeparmentID == office.DeparmentID);
                 PostOfficeId = lading.POCurrent,
-                Status = 1,
+                Status = status,
                 DateTime = DateTime.Now,
                 CreatedDate = DateTime.Now,
                 TypeReason = null,
                 Note = model.note
             };
+           
             _context.LadingHistories.Add(ldHistory);
             _context.SaveChanges();
             return 1;

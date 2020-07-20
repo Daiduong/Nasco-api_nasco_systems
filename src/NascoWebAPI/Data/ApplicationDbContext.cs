@@ -112,6 +112,7 @@ namespace NascoWebAPI
         public virtual DbSet<CustomerProgramPromotion> CustomerProgramPromotion { get; set; }
         public virtual DbSet<EMSLogShipmentTable> EMSLogShipmentTables { get; set; }
         public virtual DbSet<EMSLogInventoryTable> EMSLogInventoryTables { get; set; }
+        public virtual DbSet<EMSLogCallbackTable> EMSLogCallbackTables { get; set; }
 
         #region View
         public virtual DbSet<PackageOfLading_Joined_Package_BKInternal_View> PackageOfLading_Joined_Package_BKInternal_Views { get; set; }
