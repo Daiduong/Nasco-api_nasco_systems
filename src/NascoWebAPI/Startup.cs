@@ -64,7 +64,14 @@ namespace NascoWebAPI
             services.AddIdentity<ApplicationUser, IdentityRole>()
                .AddEntityFrameworkStores<ApplicationDbContext>();
 
-            services.AddCors();
+            //services.AddCors();
+
+            services.AddCors(options => options.AddPolicy("CorsPolicy", builder =>
+            {
+                builder.AllowAnyMethod().AllowAnyHeader()
+                       .AllowAnyOrigin()
+                       .AllowCredentials();
+            }));
 
             AutoMapperCfg(services);
             JwtConfigService(services);
@@ -100,13 +107,21 @@ namespace NascoWebAPI
             {
                 app.UseExceptionHandler("/Home/Error");
             }
-     
+
+            //app.UseCors(builder =>
+            //{
+            //    builder.AllowAnyOrigin();
+            //    builder.AllowAnyMethod();
+            //    builder.AllowAnyHeader();
+            //});
+
             app.UseCors(builder =>
-            {
-                builder.AllowAnyOrigin();
-                builder.AllowAnyMethod();
-                builder.AllowAnyHeader();
-            });
+                builder.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+
+            app.UseCors("CorsPolicy");
+
             app.UseApplicationInsightsExceptionTelemetry();
             app.UseDefaultFiles();
             app.UseStaticFiles();

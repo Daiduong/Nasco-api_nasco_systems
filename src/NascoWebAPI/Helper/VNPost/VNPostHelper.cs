@@ -67,6 +67,10 @@ namespace NascoWebAPI.Helper.VNPost
             DaTraTienNguoiGui,
             [Description("Phát hoàn thành công")]
             DaHoanThanhCong,
+            [Description("Đã đến bưu cục (Đến bưu cục tỉnh)")]
+            DaDenBuuCuc,
+            [Description("Giao hàng thành công")]
+            GiaoHangThanhCong,
         }
     }
 }

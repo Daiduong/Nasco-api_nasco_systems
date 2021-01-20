@@ -30,8 +30,8 @@ namespace NascoWebAPI.Controllers
         }
 
         // POST api/values
-        [HttpPost]
-        public async Task<ImportAndPublishInvResponse> Post([FromBody]ImportAndPublishInvRequestBody requestBody)
+        [HttpPost("PostVNPT_MB")]
+        public async Task<MB_VNPTPublishService.ImportAndPublishInvResponse> PostVNPT_MB([FromBody]MB_VNPTPublishService.ImportAndPublishInvRequestBody requestBody)
         {
             //      ImportAndPublishInvRequestBody requestBody = new ImportAndPublishInvRequestBody();
             //      requestBody.Account = "nascoadmin";
@@ -75,8 +75,43 @@ namespace NascoWebAPI.Controllers
             //      requestBody.pattern = "01GTKT0/001";
             //      requestBody.serial = "NC/18E";
             //      requestBody.convert = 1;
-            PublishServiceSoapClient.EndpointConfiguration endpoint = new PublishServiceSoapClient.EndpointConfiguration();
-            PublishServiceSoapClient client = new PublishServiceSoapClient(endpoint);
+
+            MB_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration endpoint = new MB_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration();
+            MB_VNPTPublishService.PublishServiceSoapClient client = new MB_VNPTPublishService.PublishServiceSoapClient(endpoint);
+            var result = client.ImportAndPublishInvAsync(
+                requestBody.Account,
+                requestBody.ACpass,
+                requestBody.xmlInvData,
+                requestBody.username,
+                requestBody.password,
+                requestBody.pattern,
+                requestBody.serial,
+                requestBody.convert
+                ).ConfigureAwait(true).GetAwaiter().GetResult();
+            return result;
+        }
+        [HttpPost("PostVNPT_MT")]
+        public async Task<MT_VNPTPublishService.ImportAndPublishInvResponse> PostVNPT_MT([FromBody]MT_VNPTPublishService.ImportAndPublishInvRequestBody requestBody)
+        {
+            MT_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration endpoint = new MT_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration();
+            MT_VNPTPublishService.PublishServiceSoapClient client = new MT_VNPTPublishService.PublishServiceSoapClient(endpoint);
+            var result = client.ImportAndPublishInvAsync(
+                requestBody.Account,
+                requestBody.ACpass,
+                requestBody.xmlInvData,
+                requestBody.username,
+                requestBody.password,
+                requestBody.pattern,
+                requestBody.serial,
+                requestBody.convert
+                ).ConfigureAwait(true).GetAwaiter().GetResult();
+            return result;
+        }
+        [HttpPost("PostVNPT_MN")]
+        public async Task<MN_VNPTPublishService.ImportAndPublishInvResponse> PostVNPT_MN([FromBody]MN_VNPTPublishService.ImportAndPublishInvRequestBody requestBody)
+        {
+            MN_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration endpoint = new MN_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration();
+            MN_VNPTPublishService.PublishServiceSoapClient client = new MN_VNPTPublishService.PublishServiceSoapClient(endpoint);
             var result = client.ImportAndPublishInvAsync(
                 requestBody.Account,
                 requestBody.ACpass,
