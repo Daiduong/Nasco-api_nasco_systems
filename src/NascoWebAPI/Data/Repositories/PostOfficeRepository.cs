@@ -121,8 +121,8 @@ namespace NascoWebAPI.Data
             if (parent != null)
             {
                 var children = parent.Traverse(x => _context.PostOffices.Where(y => x.PostOfficeID == y.ParentId && y.State == 0));
-                await _context.PostOffices.Where(o => (o.SetsId == parent.PostOfficeID || o.PostOfficeID == parent.SetsId) && o.State == 0 && parent.PostOfficeID != o.PostOfficeID)
-                   .ForEachAsync(o =>
+                _context.PostOffices.Where(o => (o.SetsId == parent.PostOfficeID || o.PostOfficeID == parent.SetsId) && o.State == 0 && parent.PostOfficeID != o.PostOfficeID)
+                   .ForEach(o =>
                    {
                        children = children.Union(o.Traverse(x => _context.PostOffices.Where(y => x.PostOfficeID == y.ParentId && y.State == 0)));
                    });

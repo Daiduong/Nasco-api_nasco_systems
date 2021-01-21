@@ -94,7 +94,7 @@ namespace NascoWebAPI.Controllers
             {
                 isBulky = false;
             }
-            return JsonSuccess(await _iGoogleMapService.GetPostOfficeMinDistance(request.PostOfficeMethodId, request.CityId, request.Lat, request.Lng, isBulky));
+            return JsonSuccess(await _iGoogleMapService.GetPostOfficeMinDistance(request.PostOfficeMethodId, request.CityId, request.Lat, request.Lng, isBulky, request.IsRecieveHub));
         }
         [AllowAnonymous]
         [HttpPost("GetDistancePostOffice")]
@@ -112,6 +112,7 @@ namespace NascoWebAPI.Controllers
             public List<NumberDIM> Number_L_W_H_DIMs { get; set; }
             public double Weight { get; set; }
             public double Mass { get; set; }
+            public bool? IsRecieveHub { get; set; }
         }
     }
 }

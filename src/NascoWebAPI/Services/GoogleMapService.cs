@@ -14,7 +14,7 @@ namespace NascoWebAPI.Services
     public interface IGoogleMapService
     {
         Task<ResultModel<LocationModel>> GetLocation(GeocoderRequest request, int index = 0);
-        Task<KeyValuePair<int, double>> GetPostOfficeMinDistance(int type, int cityId, double lat, double lng, bool isBulky);
+        Task<KeyValuePair<int, double>> GetPostOfficeMinDistance(int type, int cityId, double lat, double lng, bool isBulky, bool? isRecieveHub);
         Task<KeyValuePair<int, double>> GetDistancePostOffice(int postOfficeId, double lat, double lng);
     }
     public class GoogleMapService : IGoogleMapService
@@ -188,7 +188,7 @@ namespace NascoWebAPI.Services
             }
             return result;
         }
-        public async Task<KeyValuePair<int, double>> GetPostOfficeMinDistance(int type, int cityId, double lat, double lng, bool isBulky)
+        public async Task<KeyValuePair<int, double>> GetPostOfficeMinDistance(int type, int cityId, double lat, double lng, bool isBulky, bool? isRecieveHub)
         {
             var postOfficeId = (_locationRepository.GetSingle(o => o.LocationId == cityId) ?? new Location()).PostOfficeId ?? 0;
             var postOffice = await _postOfficeRepository.GetFirstAsync(x => x.PostOfficeID == postOfficeId);
@@ -201,21 +201,30 @@ namespace NascoWebAPI.Services
                     isBulky = true;
                 }
                 double dMinFar = 30000;
-                var result = await GetPostOfficeMinDistance(postOffices, lat, lng, isBulky);
+                var result = await GetPostOfficeMinDistance(postOffices, lat, lng, isBulky, isRecieveHub);
                 if (!isBulky && result.Value > dMinFar)
                 {
-                    result = await GetPostOfficeMinDistance(postOffices, lat, lng, !isBulky);
+                    result = await GetPostOfficeMinDistance(postOffices, lat, lng, !isBulky, isRecieveHub);
                 }
                 return result;
             }
             return new KeyValuePair<int, double>(postOffice.PostOfficeID, 0);
         }
-        public async Task<KeyValuePair<int, double>> GetPostOfficeMinDistance(IEnumerable<PostOffice> postOffices, double lat, double lng, bool isBulky)
+        public async Task<KeyValuePair<int, double>> GetPostOfficeMinDistance(IEnumerable<PostOffice> postOffices, double lat, double lng, bool isBulky, bool? isRecieveHub)
         {
             if (lat == 0 || lng == 0)
                 return new KeyValuePair<int, double>(0, 0);
-            postOffices = postOffices
+            if (isRecieveHub == true)
+            {
+                postOffices = postOffices
+                .Where(x => x.Lat != null && x.Lng != null && x.PostOfficeID != 93);
+            }
+            else
+            {
+                postOffices = postOffices
                 .Where(x => x.Lat != null && x.Lng != null);
+            }
+            
             var origins = postOffices
                 .Select(x => new KeyValuePair<int, string>(x.PostOfficeID, x.Lat + "," + x.Lng))
                 .ToArray();

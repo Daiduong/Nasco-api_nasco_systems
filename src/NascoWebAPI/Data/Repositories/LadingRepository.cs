@@ -458,7 +458,7 @@ namespace NascoWebAPI.Data
                                      lading.RecipientId = recipient.Id;
                                      if (lading.CityRecipientId.HasValue)
                                      {
-                                         var distanceToResponse = await googleMapService.GetPostOfficeMinDistance((int)PostOfficeMethod.TO, lading.CityRecipientId ?? 0, lading.LatTo ?? 0, lading.LngTo ?? 0, (lading.Weight ?? 0) > 30);
+                                         var distanceToResponse = await googleMapService.GetPostOfficeMinDistance((int)PostOfficeMethod.TO, lading.CityRecipientId ?? 0, lading.LatTo ?? 0, lading.LngTo ?? 0, (lading.Weight ?? 0) > 30, true);
                                          lading.POTo = distanceToResponse.Key;
                                          lading.DistanceTo = distanceToResponse.Value;
                                      }
