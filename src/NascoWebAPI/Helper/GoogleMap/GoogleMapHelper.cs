@@ -10,7 +10,8 @@ namespace NascoWebAPI.Helper
     {
         public static string KEY_API_LOCAL = "AIzaSyDpn7joMF45PLRnTzpH_p1MwSxK0kaIB58";
         //public static string KEY_API_LOCAL = "AIzaSyB6DJ9IGi-Ouwxy4JMz6lBXrKO-OsANCbQ";
-        public static string KEY_API_IP = "AIzaSyCAm3A6hLRR1TJmUsEc2ah-9idceKnIVTI";
+        public static string KEY_API_IP = "AIzaSyDpn7joMF45PLRnTzpH_p1MwSxK0kaIB58";
+        //public static string KEY_API_IP = "AIzaSyCAm3A6hLRR1TJmUsEc2ah-9idceKnIVTI";
         // public static string KEY_API_IP = "AIzaSyBl-b481opIEky5BeN33yT8_oFMeISNoSY";
      
         public static string STATUS_OK = "OK";
