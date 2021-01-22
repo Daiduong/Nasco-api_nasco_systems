@@ -42,7 +42,7 @@ namespace NascoWebAPI.Data
                             StatusId = lading.Status,
                             Order = orderNumber,
                             TotalNumber = 1,
-                            UnitGroupsId = model[i].UnitGroupId
+                            UnitGroupsId = null
                          };
                         _context.PackageOfLadings.Add(packageOfLading);
                     }
