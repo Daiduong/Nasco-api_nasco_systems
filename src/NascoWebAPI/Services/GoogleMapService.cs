@@ -247,7 +247,7 @@ namespace NascoWebAPI.Services
             int index = 0;
             if (origins.Count() > 1)
             {
-                minDistance = elements.Where(x => x.Distance != null).Min(x => x.Distance.Value);
+                var distance = elements.Where(x => x.Distance != null).Min(x => x.Distance.Value);
                 var postOfficeHUBIndexs = postOffices.Select((po, i) => new { po, i }).Where(x => x.po.PostOfficeTypeId == (int)PostOfficeType.HUB && !(x.po.IsPartner ?? false));
                 if (isBulky && postOfficeHUBIndexs.Count() != 0) // OTO
                 {
@@ -273,11 +273,11 @@ namespace NascoWebAPI.Services
                         }
 
                     }
-                    minDistance = elements[index].Distance?.Value ?? 0;
+                    distance = elements[index].Distance?.Value ?? 0;
                 }
                 else
                 {
-                    index = Array.FindIndex(elements, x => x.Distance != null && x.Distance.Value == minDistance);
+                    index = Array.FindIndex(elements, x => x.Distance != null && x.Distance.Value == distance);
                 }
             }
             return new KeyValuePair<int, double>(origins[index].Key, minDistance / 1000);
