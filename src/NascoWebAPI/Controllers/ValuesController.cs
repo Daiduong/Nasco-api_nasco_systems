@@ -107,6 +107,23 @@ namespace NascoWebAPI.Controllers
                 ).ConfigureAwait(true).GetAwaiter().GetResult();
             return result;
         }
+        [HttpPost("PostVNPT_MT_Test")]
+        public async Task<MT_TEST_VNPTPublishService.ImportAndPublishInvResponse> PostVNPT_MT_Test([FromBody]MT_TEST_VNPTPublishService.ImportAndPublishInvRequestBody requestBody)
+        {
+            MT_TEST_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration endpoint = new MT_TEST_VNPTPublishService.PublishServiceSoapClient.EndpointConfiguration();
+            MT_TEST_VNPTPublishService.PublishServiceSoapClient client = new MT_TEST_VNPTPublishService.PublishServiceSoapClient(endpoint);
+            var result = client.ImportAndPublishInvAsync(
+                requestBody.Account,
+                requestBody.ACpass,
+                requestBody.xmlInvData,
+                requestBody.username,
+                requestBody.password,
+                requestBody.pattern,
+                requestBody.serial,
+                requestBody.convert
+                ).ConfigureAwait(true).GetAwaiter().GetResult();
+            return result;
+        }
         [HttpPost("PostVNPT_MN")]
         public async Task<MN_VNPTPublishService.ImportAndPublishInvResponse> PostVNPT_MN([FromBody]MN_VNPTPublishService.ImportAndPublishInvRequestBody requestBody)
         {
