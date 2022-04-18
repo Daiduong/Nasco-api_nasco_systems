@@ -44,7 +44,7 @@ namespace NascoWebAPI.Services
         private async Task<ClaimsIdentity> GetClaimsIdentity(IOfficerRepository office, LoginModel loginModel)
         {
             loginModel.PasswordHash = Command.EncryptString(loginModel.Password);
-            var user = await office.GetSingleAsync(o => o.UserName == loginModel.UserName && o.Password == loginModel.PasswordHash );
+            var user = await office.GetSingleAsync(o => o.UserName == loginModel.UserName && o.Password == loginModel.PasswordHash && o.State == 0);
             if (user != null)
             {
                 user.LocationTime = System.DateTime.Now;

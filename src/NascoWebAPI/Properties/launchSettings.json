@@ -11,12 +11,12 @@
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "api/values"
+      "launchUrl": "api/"
     },
     "NascoWebAPI": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "Http://localhost:5000/api/values"
+      "launchUrl": "Http://localhost:5000/api/"
     }
   }
 }

@@ -35,5 +35,9 @@ namespace NascoWebAPI.Data
         public string ColumnNameMoneyRange { get; set; }
         public string Description { get; set; }
         public Nullable<int> PriceListId { get; set; }
+        public string CitytoIds { get; set; }
+        public string PotoIds { get; set; }
+        
+
     }
 }

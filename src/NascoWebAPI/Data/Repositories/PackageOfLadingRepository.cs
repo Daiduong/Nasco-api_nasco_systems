@@ -24,7 +24,7 @@ namespace NascoWebAPI.Data
                     for (int j = 0; j < model[i].Number; j++)
                     {
                         orderNumber++;
-                         var packageOfLading = new PackageOfLading()
+                        var packageOfLading = new PackageOfLading()
                         {
                             Code = $"{ lading.Code }.{orderNumber}",
                             CreatedBy = currentUserId,
@@ -42,7 +42,7 @@ namespace NascoWebAPI.Data
                             StatusId = lading.Status,
                             Order = orderNumber,
                             TotalNumber = 1,
-                            UnitGroupsId = model[i].UnitGroupId
+                            UnitGroupsId = model[i].UnitGroupId == null || model[i].UnitGroupId == 0 ? null : model[i].UnitGroupId
                          };
                         _context.PackageOfLadings.Add(packageOfLading);
                     }

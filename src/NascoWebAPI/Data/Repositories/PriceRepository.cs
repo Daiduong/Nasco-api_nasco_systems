@@ -242,7 +242,7 @@ namespace NascoWebAPI.Data
             }
             return priceFree;
         }
-        public async Task<double> Computed(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null)
+        public async Task<double> Computed(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, double? totalBox = null)
         {
             double priceDefaul = 0;
             if (!(await _context.PriceLists.AnyAsync(o => o.PriceListID == priceListId)))
@@ -325,6 +325,11 @@ namespace NascoWebAPI.Data
                                         priceDefaul += totalPrice * Math.Ceiling(weightSubtract / ((setupWeight.SWPlus ?? 0) > 0 ? setupWeight.SWPlus.Value : 1));
                                         weightTemp = setupWeight.SWFrom.Value - 0.00000001;
                                         break;
+                                    /// continute calculate
+                                    case (int)StatusFormula.Formula8:
+                                        priceDefaul += totalPrice * totalBox.Value;
+                                        weightTemp = -1;
+                                        break;
                                 }
 
                             }
@@ -398,7 +403,7 @@ namespace NascoWebAPI.Data
                                                 cityRecipientId = poMediate.CityId ?? 0;
                                             }
                                         }
-                                        chargeDefault = await priceRepository.Computed(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, cityRecipientId, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId);
+                                        chargeDefault = await priceRepository.Computed(weightToPrice, lading.ServiceId ?? 0, lading.PriceListId ?? 0, lading.CitySendId ?? 0, cityRecipientId, lading.DistrictFrom ?? 0, lading.DistrictTo ?? 0, lading.RDFrom ?? 0, lading.SenderId,lading.Number ?? 0);
                                     }
                                 }
                             }
@@ -444,8 +449,16 @@ namespace NascoWebAPI.Data
                         }
                         else
                         {
-                            serviceOtherModel.Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
-                                 lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
+                            if (serviceOtherId == 117)
+                            {
+                                serviceOtherModel.Charge = await ComputedDBND(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,// dbnd-ph
+                                lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
+                            }
+                            else
+                            {
+                                serviceOtherModel.Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
+                                lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
+                            }
                         }
                         if (serviceOtherModel.Charge > 0 || (serviceOtherModel.Charge == 0 && serviceOtherId != (int)ServiceOther.DBND_PH && serviceOtherId != (int)ServiceOther.DBND_LH))
                         {
@@ -545,6 +558,76 @@ namespace NascoWebAPI.Data
             var min = (serviceOtherFomula.ChargeMin ?? 0);
             return result > min ? result : min;
         }
+        public async Task<double> ComputedDBND(int serviceOtherId, int? priceListId, int? structureId = null, int? cityFromId = 0, int? cityToId = null, int? districtFromId = null, int? districtToId = null, object lading = null)
+        {
+            var serviceOtherFomulas = _context.ServiceOtherFormulas.Where(o => o.State == 0 && o.ServiceOtherId == serviceOtherId);
+            //
+            //serviceOtherFomulas = serviceOtherFomulas.Where(o => o.CitytoIds != null &&
+            //o.CitytoIds != "" && o.CitytoIds.Trim('[', ']').Split(',')
+            //.Where(f => Int32.Parse(f) == cityToId).Count() != 0);
+            //if (lading.POTo == 55) // noi bai
+            //{
+            //    serviceOtherFomulas = serviceOtherFomulas.Where(o => o.PotoIds.Trim('[', ']').Split(',')
+            //.Where(f => Int32.Parse(f) == 55).Count() != 0);
+            //}
+            List<ServiceOtherFormula> listServiceOtherFomula = new List<ServiceOtherFormula>();
+            ServiceOtherFormula serviceOtherFomula = new ServiceOtherFormula();
+            var a = serviceOtherFomulas.Select(s => s);
+            foreach (var serviceOtherFor in serviceOtherFomulas)
+            {
+                if (serviceOtherFor.CitytoIds != null)
+                {
+                    var listCityId = serviceOtherFor.CitytoIds.Trim('[', ']').Split(',');
+                    foreach (var cityId in listCityId)
+                    {
+                        if (Int32.Parse(cityId) == cityToId)
+                        {
+                            var poTo = this.GetPoto("POTo", lading);
+                            if (poTo != 55) listServiceOtherFomula.Add(serviceOtherFor);
+                            else if (serviceOtherFor.PotoIds != null && serviceOtherFor.PotoIds != "")
+                            {
+                                foreach (var poId in serviceOtherFor.PotoIds.Trim('[', ']').Split(','))
+                                {
+                                    if (Int32.Parse(poId) == 55)
+                                    {
+                                        listServiceOtherFomula.Add(serviceOtherFor);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //var serviceOtherFomula = await serviceOtherFomulas.FirstOrDefaultAsync();
+            //var serviceOtherFomula = await serviceOtherFomulas.FirstOrDefaultAsync();
+            if (listServiceOtherFomula.Count() > 0) serviceOtherFomula = listServiceOtherFomula[0];
+            if (!string.IsNullOrEmpty(serviceOtherFomula?.ColumnNameMoneyRange))
+            {
+                var moneyRange = this.GetMoneyRange(serviceOtherFomula?.ColumnNameMoneyRange, lading);
+                serviceOtherFomula = listServiceOtherFomula.Where(o => o.MoneyRange.Value >= moneyRange)
+                                            .OrderBy(o => o.MoneyRange)
+                                            .FirstOrDefault();
+            }
+            if (serviceOtherFomula == null)
+                return 0;
+            if (string.IsNullOrEmpty(serviceOtherFomula.Formula))
+                return serviceOtherFomula.ChargeMin ?? 0;
+
+            var formula = ConvertFormula(serviceOtherFomula.Formula, lading);
+            double result = 0;
+            var connection = _context.Database.GetDbConnection();
+
+            connection.Open();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT CAST(" + formula + " AS decimal) ";
+                double.TryParse(command.ExecuteScalar().ToString(), out result);
+            }
+            connection.Close();
+            var min = (serviceOtherFomula.ChargeMin ?? 0);
+            return result > min ? result : min;
+        }
         public string ConvertFormula(string formula, object obj)
         {
             var str = formula.Substring(formula.IndexOf("[") + 1)
@@ -563,7 +646,11 @@ namespace NascoWebAPI.Data
             double.TryParse(obj.GetValue(columnName) + "", out double d);
             return d;
         }
-
+        public int GetPoto(string columnName, object obj)
+        {
+            int.TryParse(obj.GetValue(columnName) + "", out int d);
+            return d;
+        }
         public async Task<ResultModel<ComputedPriceModel>> ComputedBox(LadingViewModel lading)
         {
             var result = new ResultModel<ComputedPriceModel>();
@@ -676,8 +763,16 @@ namespace NascoWebAPI.Data
                         }
                         else
                         {
-                            serviceOtherModel.Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
-                                 lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
+                            if (serviceOtherId == 117)
+                            {
+                                serviceOtherModel.Charge = await ComputedDBND(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,// dbnd-ph
+                                lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
+                            }
+                            else
+                            {
+                                serviceOtherModel.Charge = await ComputedServiceOther(serviceOtherId, lading.PriceListId, lading.StructureID, lading.CitySendId,
+                                lading.CityRecipientId, lading.DistrictFrom, lading.DistrictTo, lading);
+                            }
                         }
                         if (serviceOtherModel.Charge > 0 || (serviceOtherModel.Charge == 0 && serviceOtherId != (int)ServiceOther.DBND_PH && serviceOtherId != (int)ServiceOther.DBND_LH))
                         {
@@ -704,7 +799,7 @@ namespace NascoWebAPI.Data
             }
             return result;
         }
-        public async Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null,int? number = null)
+        public async Task<double> ComputedBox(double weight, int serviceId, int priceListId, int cityFromId, int cityToId, int districtFromId, int districtToId, int deliveryReceiveId, int? customerId = null, int? unitGroupId = null, int? number = null)
         {
             double priceDefaul = 0;
             if (!(await _context.PriceLists.AnyAsync(o => o.PriceListID == priceListId)))
@@ -789,7 +884,7 @@ namespace NascoWebAPI.Data
                                         weightTemp = setupWeight.SWFrom.Value - 0.00000001;
                                         break;
                                     case (int)StatusFormula.Formula8:
-                                        priceDefaul += totalPrice* number.Value;
+                                        priceDefaul += totalPrice * number.Value;
                                         weightTemp = -1;
                                         break;
                                 }

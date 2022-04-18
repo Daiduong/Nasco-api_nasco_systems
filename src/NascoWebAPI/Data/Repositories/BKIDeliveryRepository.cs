@@ -64,7 +64,7 @@ namespace NascoWebAPI.Data
                 using (var EMSDeliveries = new BlockingCollection<EMSLadingDeliveryRequest>())
                 {
                     var pakageOfLadings = _context.PackageOfLadings.Where(x => x.State == 0 && packageOfLadingIds.Contains(x.Id) && statusRollbacks.Contains(x.StatusId ?? 0));
-                    await pakageOfLadings.ForEachAsync(packageOfLading =>
+                    pakageOfLadings.ForEach(packageOfLading =>
                     {
                         packageOfLading.DeliveryBy = currentUserId;
                         EntityHelper.UpdatePackageOfLading(packageOfLading, currentUserId, currentPOId, statusUpdate);
@@ -73,7 +73,7 @@ namespace NascoWebAPI.Data
                         ladingIdExpecteds.Add(packageOfLading.LadingId.Value);
                     });
                     var ladings = _context.Ladings.Where(x => x.State == 0 && ladingIds.Contains(x.Id) && statusRollbacks.Contains(x.Status ?? 0)).Include(x => x.Sender);
-                    await ladings.ForEachAsync(lading =>
+                    ladings.ForEach(lading =>
                     {
                         lading.OfficerDelivery = officer.OfficerID;
                         EntityHelper.UpdateLading(lading, currentUserId, currentPOId, statusUpdate);

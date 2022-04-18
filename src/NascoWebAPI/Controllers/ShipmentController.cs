@@ -1245,19 +1245,22 @@ namespace NascoWebAPI.Controllers
                             }
                             if ((int)StatusLading.ThanhCong == lading.Status)
                             {
-                                if(PaymentType.Point.GetHashCode() != lading.PaymentType)
-                                {
-                                    var pointofCus = _context.CustomerPoints.Where(x => x.CustomerId == lading.SenderId).FirstOrDefault();
-                                    pointofCus.AllPoint += lading.Point.GetValueOrDefault();
-                                    pointofCus.currentpoint += lading.Point.GetValueOrDefault();
-                                    var rankID = _context.Ranks.Where(x => x.MinPoint <= pointofCus.AllPoint && x.MaxPoint >= pointofCus.AllPoint && x.IsEnabled == true).FirstOrDefault();
-                                    if (rankID != null)
-                                    {
-                                        pointofCus.RankId = (int)rankID.Id;
-                                    }
-                                    _context.CustomerPoints.Update(pointofCus);
-                                    _context.SaveChanges();
-                                }
+                                //if(PaymentType.Point.GetHashCode() != lading.PaymentType)
+                                //{
+                                //    var pointofCus = _context.CustomerPoints.Where(x => x.CustomerId == lading.SenderId).FirstOrDefault();
+                                //    if(lading.Point != null)
+                                //    {
+                                //        pointofCus.AllPoint += lading.Point.GetValueOrDefault();
+                                //        pointofCus.currentpoint += lading.Point.GetValueOrDefault();
+                                //    }
+                                //    var rankID = _context.Ranks.Where(x => x.MinPoint <= pointofCus.AllPoint && x.MaxPoint >= pointofCus.AllPoint && x.IsEnabled == true).FirstOrDefault();
+                                //    if (rankID != null)
+                                //    {
+                                //        pointofCus.RankId = (int)rankID.Id;
+                                //    }
+                                //    _context.CustomerPoints.Update(pointofCus);
+                                //    _context.SaveChanges();
+                                //}
                             }
                             if ((int)StatusLading.DangLayHang == lading.Status)
                             {

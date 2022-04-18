@@ -170,7 +170,7 @@ namespace NascoWebAPI.Data
                 {
                     #region Kiện
                     var pakageOfLadings = _context.PackageOfLadings.Where(x => x.State == 0 && packageOfLadingIds.Contains(x.Id) && statusRollback == x.StatusId);
-                    await pakageOfLadings.ForEachAsync(packageOfLading =>
+                    pakageOfLadings.ForEach(packageOfLading =>
                     {
                         EntityHelper.UpdatePackageOfLading(packageOfLading, currentUserId, currentPOId, statusUpdate);
                         var packageOfLadingHistory = EntityHelper.GetPackageOfLadingHistory(currentUserId, currentPOId, packageOfLading.Id, packageOfLading.StatusId ?? 0);
@@ -179,7 +179,7 @@ namespace NascoWebAPI.Data
                     #endregion
                     #region Vận đơn
                     var ladings = _context.Ladings.Where(x => x.State == 0 && ladingIds.Contains(x.Id) && statusRollback == x.Status);
-                    await ladings.ForEachAsync(lading =>
+                    ladings.ForEach(lading =>
                     {
                         lading.OfficerTransferId = currentUserId;
                         EntityHelper.UpdateLading(lading, currentUserId, currentPOId, statusUpdate);
@@ -190,7 +190,7 @@ namespace NascoWebAPI.Data
                     #endregion
                     #region Gói
                     var packages = _context.Packages.Where(o => packageIds.Contains(o.PackageID));
-                    await packages.ForEachAsync(x =>
+                    packages.ForEach(x =>
                     {
                         EntityHelper.UpdatePackage(x, currentUserId, currentPOId, EntityHelper.ConvertToPackageStatus(statusUpdate, !confirmTo));
                         var packageHistory = EntityHelper.GetPackageHistory(currentUserId, currentPOId, x.PackageID, x.Status ?? 0, x.LadingIDs, x.TotalLading, x.TotalNumber, x.TotalWeight);
