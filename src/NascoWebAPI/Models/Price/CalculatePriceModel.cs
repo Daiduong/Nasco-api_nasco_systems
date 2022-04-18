@@ -74,7 +74,7 @@ namespace NascoWebAPI.Models
         {
             get
             {
-                return Math.Round((this.ChargeMain + this.ChargeFuel + this.ChargeAddition + this.Surcharge) * 0.1);
+                return Math.Round((this.ChargeMain + this.ChargeFuel + this.ChargeAddition + this.Surcharge) * 0.08);
             }
         }
         public double DiscountAmount { get; set; }
